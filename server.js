@@ -11,24 +11,91 @@ require('dotenv').config()
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-var token="";
+var ftoken="";
+var gtoken="";
 var code="";
-let connected=false;
+let fconnected=false;
+let fconnecting=false;
+let gconnected=false;
+let gconnecting=false;
 
-app.get('/log',function (req,res){
+
+app.post('/',function (req,res){
+  if(req.body.sub == 'Accedi con Facebook') res.redirect('/facebooklogin')
+  else if(req.body.sub == 'Accedi con Google') res.redirect('/googlelogin')
+})
+
+
+
+app.get('/facebooklogin',function (req,res){
+  fconnecting=true;
   res.redirect("https://www.facebook.com/v10.0/dialog/oauth?client_id="+process.env.CLIENT_ID+"&redirect_uri=http://localhost:8000/homepage&response_type=code");
 });
 
-
-//Facebook OAUTH
+app.get('/googlelogin', function(req, res){
+  gconnecting=true;
+  res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive.metadata.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=http://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
+})
 
 app.get('/homepage', function (req,res){
   code=req.query.code;
-  if(!connected) res.redirect('/token');
-  else res.render('homepage', );
-});
+  //check sessioni fb e google
+  if (!gconnecting){
+    if(fconnecting){
+      if(fconnected){
+        res.render('homepage', {fconnected:fconnected})
+      }
+      else{
+        res.redirect('/ftoken?code='+code);
+      }
+    }
+    else{
+      res.redirect('/');
+    }
+  }
+  else{
+    if(gconnected){
+      res.render('homepage', {fconnected:fconnected})
+    }
+    else{
+      res.redirect('/gtoken?code='+code);
+    }
+  }
+})
 
-app.get('/token',function (req,res){
+
+//acquisisci google token
+app.get('/gtoken', function(req, res){
+  
+  console.log(req.query.code)
+  var formData = {
+    code: req.query.code,
+    client_id: process.env.G_CLIENT_ID,
+    client_secret: process.env.G_CLIENT_SECRET,
+    redirect_uri: "http://localhost:8000/homepage",
+    grant_type: 'authorization_code'
+  }
+  request.post({url:'https://www.googleapis.com/oauth2/v4/token', form: formData}, function optionalCallback(err, httpResponse, body) {
+    if (err) {
+      return console.error('upload failed:', err);
+    }
+    console.log('Upload successful!  Server responded with:', body);
+    var info = JSON.parse(body);
+    if(info.error != undefined){
+      res.redirect('404', );
+    }
+    else{
+      gtoken = info.access_token;
+      gconnected = true;
+      console.log("Got the token "+ info.access_token);
+      res.render('continue.ejs', {gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected})
+    }
+  })
+})
+
+
+//acquisici fbtoken
+app.get('/ftoken',function (req,res){
   
   var formData = {
     code: code,
@@ -44,19 +111,21 @@ app.get('/token',function (req,res){
     }
     console.log('Upload successful!  Server responded with:', body);
     var info = JSON.parse(body);
-    if(info.error != undefined){res.send('<h2>Error occurred on login<br><a href="http://localhost:8000"><button>Go back to login</button></a></h2>');}
+    if(info.error != undefined){
+      res.redirect('404', );
+    }
     else{
-      token = info.access_token;
-      connected = true;
-      res.redirect('/homepage');
+      ftoken = info.access_token;
+      fconnected = true;
+      res.render('continue.ejs', {gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected})
     }
   });
 });
 
 app.get('/user_info',function (req,res){
 
-  var url = 'https://graph.facebook.com/me?fields=id,name,email&access_token='+token
-        var headers = {'Authorization': 'Bearer '+token};
+  var url = 'https://graph.facebook.com/me?fields=id,name,email&access_token='+ftoken
+        var headers = {'Authorization': 'Bearer '+ftoken};
         var request = require('request');
 
         request.get({
@@ -112,7 +181,6 @@ app.get('/app', function(req,res){
   request.get(options, (error, req, body)=>{
     var info = JSON.parse(body);
     data = info.features;
-    //console.log(data)
     n = data.length;
     res.render('list_places', {numero: n, data: data, cat: cate, citta: city});
   })
@@ -155,20 +223,65 @@ app.get('/app', function(req,res){
 });
 
 
+let info
+let xid
 app.get('/details', function(req,res){
 
-  var xid = req.query.xid;
+  xid = req.query.xid;
   
   var options = {
     url: 'https://api.opentripmap.com/0.1/en/places/xid/'+xid+'?apikey='+process.env.OpenMap_KEY
   }
   
   request.get(options,function callback(error, response, body){
-    var info = JSON.parse(body);
+    info = JSON.parse(body);
     //Con ejs
-    res.render('details', {info: info, xid: xid});
-    
+
+    request.get('http://admin:admin@127.0.0.1:5984/my_database/'+xid, function callback(error, response, body){
+      if(error) {
+        console.log(error);
+      } else {
+        console.log(response.statusCode, body);
+        infodb = JSON.parse(body);
+        if(infodb.error != undefined){
+          console.log("File non trovato");
+          res.render('details', {info: info, xid: xid});
+        } 
+        else res.render('details', {info: info, xid: xid, reviews: infodb.reviews});
+      }
+
+    });
+    //res.redirect('/reviewsput');
   });
+});
+
+
+app.get('/reviews', function(req,res){
+
+  body1={
+    "name": "GG",
+    "reviews": 'Bello111'
+  };
+  
+  request({
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/'+xid,
+    //qs: {city: city, val: val}, 
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json'  //'HTML Form URL Encoded': 'application/x-www-form-urlencoded'
+    },
+    body: JSON.stringify(body1)
+    
+  }, function(error, response, body){
+      if(error) {
+          console.log(error);
+      } else {
+          console.log(response.statusCode, body);
+          res.redirect('/details?xid='+xid);
+      }
+  });
+
+  
 });
 
     //Senza ejs
@@ -212,7 +325,7 @@ app.get('/details', function(req,res){
 
 
 app.get('/',function (req,res){
-  res.render('index.ejs');
+  res.render('index.ejs',);
 });
 
 
