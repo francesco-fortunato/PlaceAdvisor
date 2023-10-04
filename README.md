@@ -5,7 +5,7 @@
 Instruction:
 ```
 $ git clone https://github.com/francesco-fortunato/PlaceAdvisor.git
-$ cd ../path/to/the/file
+$ cd PlaceAdvisor/
 $ npm install
 $ npm start
 ```
