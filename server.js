@@ -20,8 +20,10 @@ let fconnected=false;
 let fconnecting=false;
 let gconnected=false;
 let gconnecting=false;
-let lconnected=false
-let username
+let lconnected=false;
+let username;
+var fbinfo;
+
 
 app.post('/',function (req,res){
   if(req.body.sub == 'Accedi con Facebook') res.redirect('/facebooklogin')
@@ -30,7 +32,7 @@ app.post('/',function (req,res){
 
 app.post('/userinfo', function(req,res){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/1',
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -61,7 +63,7 @@ let check;
 
 function gestisciAccesso(req,res){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/1',
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -123,7 +125,7 @@ function newUser(req,res){
   };
   
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/1',
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -149,7 +151,7 @@ function updateUser(req,res){
   infousers.users.push(newItem);
 
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/1',
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -168,7 +170,7 @@ function updateUser(req,res){
 
 app.get('/facebooklogin',function (req,res){
   fconnecting=true;
-  res.redirect("https://www.facebook.com/v10.0/dialog/oauth?client_id="+process.env.CLIENT_ID+"&redirect_uri=http://localhost:8000/homepage&response_type=code");
+  res.redirect("https://www.facebook.com/v10.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.CLIENT_ID+"&redirect_uri=http://localhost:8000/homepage&response_type=code");
 });
 
 app.get('/googlelogin', function(req, res){
@@ -192,11 +194,8 @@ app.get('/homepage', function (req,res){
         res.redirect('/ftoken?code='+code);
       }
     }
-    else{
-      res.redirect('/');
-    }
   }
-  else{
+  else if(gconnecting){
     if(gconnected){
       res.render('homepage', {fconnected: fconnected, username: "gusername"}) //Ancora da implementare
     }
@@ -205,6 +204,9 @@ app.get('/homepage', function (req,res){
     }
  
   }
+
+  else if(lconnected) res.render('homepage', {fconnected:fconnected, username:username})
+  else res.redirect('/');
 })
 
 //acquisisci google token
@@ -266,10 +268,10 @@ app.get('/ftoken',function (req,res){
   });
 });
 
-
+var fbinfo;
 app.get('/user_info',function (req,res){
 
-  var url = 'https://graph.facebook.com/me?fields=id,name,email&access_token='+ftoken
+  var url = 'https://graph.facebook.com/me?fields=id,first_name,last_name,picture,email&access_token='+ftoken
         var headers = {'Authorization': 'Bearer '+ftoken};
         var request = require('request');
 
@@ -278,12 +280,26 @@ app.get('/user_info',function (req,res){
             url:     url,
             }, function(error, response, body){
                 console.log(body);
-                body2 = JSON.parse(body)
-                username=body2.name;
+                body1 = JSON.parse(body);
+                var stringified = JSON.stringify(body1);
+                stringified = stringified.replace('\u0040', '@');
+                var parsed =JSON.parse(stringified);
+                username=parsed.name;
+                fbinfo=parsed;
                 res.redirect('/homepage');
             });
 
 });
+
+app.get('/info', function(req, res){
+  if (fconnected && fbinfo!=undefined){
+    res.render('user_info', {data:fbinfo});
+  }
+  else{
+    res.render('user_info', {data: ""});
+  }
+  
+})
     
 //API Open Trip Map Places
 let lon;
@@ -350,7 +366,7 @@ app.get('/details', function(req,res){
     info = JSON.parse(body);
     //Con ejs
 
-    request.get('http://admin:admin@127.0.0.1:5984/reviews/'+xid, function callback(error, response, body){
+    request.get('http://admin:admin@127.0.0.1:5984/my_database/'+xid, function callback(error, response, body){
       if(error) {
         console.log(error);
       } else {
@@ -392,7 +408,7 @@ app.get('/driveapi', function(req,res){
 
 
 app.get('/logout',function(req,res){
-  request.get("https://www.facebook.com/logout.php?next=localhost:8000&access_token="+ftoken, function callback(error, response, body){
+  //request.get("https://www.facebook.com/logout.php?next=localhost:8000&access_token="+ftoken, function callback(error, response, body){
     if (error){
       console.log(error);
     }
@@ -401,10 +417,10 @@ app.get('/logout',function(req,res){
       gconnected=false
       lconnected=false
       console.log(response.statusCode, body)
+      res.redirect('/')
     }
   })
 
-})
 
 
 let reviews_check
@@ -431,7 +447,7 @@ function newReview(req,res){
   };
   
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/'+xid,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -460,7 +476,7 @@ function updateReview(req,res){
   infodb.reviews.push(newItem);
 
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
+    url: 'http://admin:admin@127.0.0.1:5984/my_database/'+xid,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -484,13 +500,14 @@ app.get('/feedback', function(req, res){
 
 app.post('/feedback', function(req, res){
   var data = {
+    name: username,
     text : req.body.feed
   }
   connect();
   async function connect() {
 
     try {
-      const connection = await amqp.connect("amqp://localost:5672")
+      const connection = await amqp.connect("amqp://localhost:5672")
       const channel = await connection.createChannel();
       const result = channel.assertQueue("feedback")
       channel.sendToQueue("feedback", Buffer.from(JSON.stringify(data)))
