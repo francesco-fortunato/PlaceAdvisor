@@ -2,11 +2,11 @@
 const amqp = require('amqplib');
 var app = require('express');
 var request = require('request')
-let db
 
+let info = []
 connect();
 async function connect() {
-    var ndocs;
+    
     try {
         const connection = await amqp.connect("amqp://localhost:5672")
         const channel = await connection.createChannel();
@@ -16,27 +16,25 @@ async function connect() {
             const mexdb = message.content.toString();
             const mex = JSON.parse(message.content.toString());
 
+            item = {
+                "email": mex.email,
+                "id": mex.id
+            }
+            //info.push(item)
             console.log('\r\n---------------------------------------------------')
-            console.log('\r\nRicevuto feedback da '+mex.name+'\r\ntesto: '+mex.text);
+            console.log('\r\nRicevuto feedback da '+mex.name+'\r\ntesto: '+mex.text +'  con id: '+mex.id);
             console.log('\r\n--------------------------------------------------')
 
             //ACK
             channel.ack(message);
-            request({
-                url: 'http://admin:admin@127.0.0.1:5984/users/'+mex.email,
-                method: 'GET'
-            }, function(error, response, body){
-                if(error) {
-                    console.log(error);
-                } else {
-                    var body = JSON.parse(body);
-                    db = body
-                    updateFeedback(mex.name,mex.text,mex.email)
-                }
-            })
             
-
-        })
+            sleep(1000).then(() => {
+                console.log("\r\nHo dormito\r\n")
+                update(item)
+            });
+            
+            
+    })
 
     
     console.log("Aspettando un feedback...")
@@ -49,25 +47,46 @@ async function connect() {
 }
 
 
-function updateFeedback(name,text,email){
-    newItem = {
-        "text": text
-      }
-    db.feedbacks.push(newItem);
+function sleep (time) {
+    return new Promise((resolve) => setTimeout(resolve, time));
+  }
 
-  request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
-    method: 'PUT',
-    headers: {
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify(db)
+
+function update(item){
+    id = item.id
+    email = item.email
+        
+    request.get('http://admin:admin@127.0.0.1:5984/users/'+email,function callback(error, response, body){
+        var data = JSON.parse(body)
+            
+        for(var i=0; i<data.feedbacks.length;i++){
+            if(data.feedbacks[i].feedback_id == id){
+
+                console.log("\r\nModifica dell'id : "+id+"\r\n")
+
+                data.feedbacks[i].read=true
+                request({
+                    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+                    method: 'PUT',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                  
+                    }, function(error, response, body){
+                        if(error) {
+                            console.log(error);
+                        } else {
+                            console.log(response.statusCode, body);
+                        }
+                    });
+                    
+                      
+                    
+                    
     
-  }, function(error, response, body){
-      if(error) {
-          console.log(error);
-      } else {
-          console.log(response.statusCode, body);
-      }
-  });
+            }
+        }
+    })
+
 }

@@ -1,7 +1,7 @@
 <html>
     <% if (data!=""){ %>
 <head>
-    <title>Info <%=data.first_name%> <%=data.last_name%></title>
+    <title>Info <%=data.name%> <%=data.surname%></title>
 </head>
 <body>
     <script>
@@ -9,8 +9,9 @@
     <h1>Ecco le tue informazioni</h1>
     <%var photourl= data.picture.url ; %>
     <ul>
-        <li>Nome: <%= data.first_name%></li>
-        <li>Cognome: <%= data.last_name%></li>
+        <li>Username: <%= data.username%></li>
+        <li>Nome: <%= data.name%></li>
+        <li>Cognome: <%= data.surname%></li>
         <li>E-mail : <%= data.email%></li>
         <li>Picture: <img src=<%= photourl  %> width=<%=data.picture.width%> height=<%=data.picture.height%>>
     
@@ -23,6 +24,10 @@
                 <li>Xid: <%= data.reviews[i].xid%></li>
                 <li>Testo: <%= data.reviews[i].text%></li>
                 <li>Data: <%= data.reviews[i].date%></li>
+                <% if (data.reviews[i].photo!="") { %>
+                    
+                <li><img src= <%= data.reviews[i].photo %> width="200" height="200"></li> 
+                <% } %> 
                 <h2>--------------------------------------</h2>
             <%}%>
             </ul>
@@ -35,12 +40,26 @@
             <ul>
             <% for(var i=0;i < data.feedbacks.length; i++) {%>
                 <li>Testo: <%= data.feedbacks[i].text%></li>
+                <% if (data.feedbacks[i].photo!="") { %>
+                    
+                <li>Immagine: <img src= <%= data.feedbacks[i].photo %> width="200" height="200"></li> 
+                <% } %>
+                <% if(data.feedbacks[i].read==true){%>
+                    <h4>Questo feedback è stato letto dall'assistenza clienti</h4> 
+                <%}else {%>
+                    <h4>Questo feedback ancora non è stato letto</h4> 
+                <%}%>
                 <h2>--------------------------------------</h2>
             <%}%>
             </ul>
         <%} else {%>
             <h2>Non hai inviato nessun feedback ancora</h2>
         <%}%>
+
+        <a href= "http://localhost:8000/homepage">
+            <button type= 'button'>Torna alla homepage</button>
+          </a>
+        
 
     <% } else {%>
         Sembra che tu non sia collegato! :( Torna alla homepage! 

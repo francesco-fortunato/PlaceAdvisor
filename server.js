@@ -7,6 +7,7 @@ const path = require('path');
 var request = require('request');
 const { ADDRGETNETWORKPARAMS } = require('dns');
 var amqp = require('amqplib'); //Protocollo amqp per rabbitmq
+const { query } = require('express');
 require('dotenv').config()
 
 //dico a node di usare il template engine ejs e setto la cartella views per i suddetti file
@@ -25,6 +26,7 @@ let username;
 var fbinfo;
 var reviewposting=false;
 var feedbackposting=false;
+var xid='';
 
 
 app.post('/',function (req,res){
@@ -77,7 +79,7 @@ function gestisciAccesso(req,res){
           if (checkUser(req,res)==false){
             username=req.body.username
             lconnected=true
-            res.render('homepage', {username:req.body.username, fconnected:false});
+            res.render('homepage', {gconnected: false ,username:req.body.username, fconnected:false});
           }
           else if(checkUser(req,res)==true){
             
@@ -153,7 +155,13 @@ app.get('/facebooklogin',function (req,res){
 
 app.get('/googlelogin', function(req, res){
   gconnecting=true;
-  res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=http://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
+  if (req.query.length>0){
+    xid = req.query.xid;
+    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=http://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
+  }
+  else{
+    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=http://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
+  }
 })
 
 app.get('/signup', function(req, res){
@@ -161,7 +169,9 @@ app.get('/signup', function(req, res){
 });
 
 app.get('/homepage', function (req,res){
-  code=req.query.code;
+  if (req.body!=''){
+    code=req.query.code;
+  }
   //check sessioni fb e google
   if (!gconnecting){
     if(fconnecting){
@@ -174,11 +184,11 @@ app.get('/homepage', function (req,res){
     }
   }
   else if(gconnecting){
-    if(gconnected){
-      res.render('homepage', {fconnected: fconnected, gconnected:gconnected, username: "gusername"}) //Ancora da implementare
-    }
-    else{
+    if ( !gconnected){
       res.redirect('/gtoken?code='+code);
+    }
+    else if(gconnected){
+      res.render('homepage', {fconnected: fconnected, gconnected:gconnected, username: username}) //Ancora da implementare
     }
  
   }
@@ -188,7 +198,7 @@ app.get('/homepage', function (req,res){
 })
 
 app.get('/gtoken', function(req, res){
-  
+
 //acquisisci google token
   console.log(req.query.code)
   var formData = {
@@ -211,7 +221,7 @@ app.get('/gtoken', function(req, res){
       gtoken = info.access_token;
       gconnected = true;
       console.log("Got the token "+ info.access_token);
-      res.render('continue.ejs', {gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected, lconnected: lconnected})
+      res.render('continue.ejs', {gtoken : gtoken, gconnected:gconnected, feedbackposting: feedbackposting, xid:xid})
       //if(feedbackposting=true){
        // res.render('feedback.ejs', {inviato: false, gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected, lconnected: lconnected})
       //}
@@ -343,7 +353,7 @@ app.post('/fbsignup',function (req,res){
         console.log(error);
       } else {
         console.log(response.statusCode, body);
-        res.render('homepage', {fconnected: fconnected,username: username});
+        res.render('homepage', {fconnected: fconnected,username: username,gconnected:gconnected});
       }
   });
 
@@ -415,12 +425,24 @@ app.get('/app', function(req,res){
 
 
 let info
-let xid
 let place_name
 let infodb
 app.get('/details', function(req,res){
+  if(!fconnected){
+    res.redirect(404, '/error')
+  }
+  else{
+    console.log(req.query)
+  if (Object.keys(req.query).length > 1){
+
+    var photo =req.query.baseUrl;
+  }
+  else{
+    var photo = '';
+  }
 
   xid = req.query.xid;
+
   
   var options = {
     url: 'https://api.opentripmap.com/0.1/en/places/xid/'+xid+'?apikey='+process.env.OpenMap_KEY
@@ -438,34 +460,87 @@ app.get('/details', function(req,res){
         infodb = JSON.parse(body);
         if(infodb.error){
           reviews_check=false
-          res.render('details', {fconnected: fconnected,info: info, xid: xid, lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, reviews: ""});
+          res.render('details', {gconnected : gconnected, fconnected: fconnected,info: info, xid: xid, lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, reviews: "", photo:photo});
         } 
         else{
           
           reviews_check=true
-          res.render('details', {fconnected:fconnected,info: info, xid: xid, reviews: infodb.reviews,n: infodb.reviews.length,lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API});
+          res.render('details', {gconnected : gconnected, fconnected:fconnected,info: info, xid: xid, reviews: infodb.reviews,n: infodb.reviews.length,lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, photo: photo});
         }
       }
 
     });
 
   });
+  }
+  
 });
 
-app.get('/driveapi', function(req,res){
-  var url = 'https://photoslibrary.googleapis.com/v1/mediaItems'
+var numpag;
+app.get('/googlephotosapi', function(req,res){
+  if (req.query.stato == 'feed'){
+    feedbackposting=true;
+  }
+  queryxid = req.query.xid;
+  querynextpg = req.query.nextpg;
+  var url = 'https://photoslibrary.googleapis.com/v1/mediaItems:search'
 	var headers = {'Authorization': 'Bearer '+gtoken};
 
   var request = require('request');
-
-	request.get({
+  if (querynextpg!=undefined && querynextpg!=''){
+    numpag= numpag+1;
+    request.post({
+      headers: headers,
+		  url:     url,
+      body:    {
+        "pageToken": querynextpg,
+        "filters": {
+          "mediaTypeFilter": {
+            "mediaTypes": [
+              "PHOTO"
+            ]
+          }
+        }
+      },
+      json:true
+		  }, function(error, response, body){
+        console.log(JSON.stringify(body));
+        info = JSON.parse(JSON.stringify(body));
+      if (queryxid!=''){
+        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting,  xid : queryxid, numpag:numpag})
+      }
+      else{
+        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting, xid :'', numpag:numpag})
+      }
+		});
+  }
+  else{
+    numpag=1;
+    request.post({
 		headers: headers,
 		url:     url,
+    body:    {
+      "filters": {
+        "mediaTypeFilter": {
+          "mediaTypes": [
+            "PHOTO"
+          ]
+        }
+      }
+    },
+    json:true
 		}, function(error, response, body){
-			console.log(body);
-      info = JSON.parse(body);
-			res.render('gphotos.ejs', {info:info})
+			console.log(JSON.stringify(body));
+      info = JSON.parse(JSON.stringify(body));
+      if (queryxid!=''){
+        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting,  xid : queryxid, numpag: numpag})
+      }
+      else{
+        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting, xid :'', numpag: numpag})
+      }
 		});
+  }
+	
     
 });
 
@@ -489,12 +564,10 @@ app.get('/logout',function(req,res){
 let reviews_check
 let reviews_rev
 
-app.get('/newreview', function(req, res){
-  reviewposting=true;
-  res.render('new_review.ejs', {gconnected: gconnected})
-})
 app.post('/reviews', function(req,res){
-  reviewposting=false;
+  console.log("body: %j", req.body)
+  
+
   if(!reviews_check) newReview(req,res);
   else updateReview(req,res);
 
@@ -517,12 +590,32 @@ function updateUserReviews(req,res){
         var info = JSON.parse(body)
         console.log('\r\n'+place_name+'\r\n')
         data = new Date();
-        strdate = data.getDate()+"/"+data.getMonth()+"/"+data.getFullYear()
-        item={
-          "xid": xid,
-          "place": place_name,
-          "text": req.body.rev,
-          "date": strdate
+        mese=data.getMonth() +1;
+        strdate = data.getDate()+"/"+mese+"/"+data.getFullYear()
+
+  console.log("body funzioneupdateuserreview: %j", req.body)
+        if (req.body.baseUrl!=''){
+          item={
+                "xid": xid,
+                "name": username,
+                "text": req.body.rev,
+                "date": strdate,
+                "photo": req.body.baseUrl,
+              }
+            
+          
+        } 
+        else{
+          item={
+              
+                "xid": xid,
+                "name": username,
+                "text": req.body.rev,
+                "date": strdate,
+                "photo": '',
+              
+            
+          }
         }
         info.reviews.push(item)
         request({
@@ -548,16 +641,35 @@ function updateUserReviews(req,res){
 
 function newReview(req,res){
   data = new Date();
-  strdate = data.getDate()+"/"+data.getMonth()+"/"+data.getFullYear()
-  item={
-    "reviews": [
-      {
-        "name": username,
-        "text": req.body.rev,
-        "date": strdate
-      }
-    ]
-  };
+  mese=data.getMonth() +1;
+  strdate = data.getDate()+"/"+mese+"/"+data.getFullYear()
+
+  console.log("body funzionenewreview: %j", req.body)
+  if (req.body.baseUrl!=''){
+    item={
+      "reviews": [
+        {
+          "name": username,
+          "text": req.body.rev,
+          "date": strdate,
+          "photo": req.body.baseUrl
+        }
+      ]
+    }
+  } 
+  else{
+    item={
+      "reviews": [
+        {
+          "name": username,
+          "text": req.body.rev,
+          "date": strdate,
+          "photo": ''
+        }
+      ]
+    }
+  }
+
 
   request({
     url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
@@ -579,13 +691,30 @@ function newReview(req,res){
 
 function updateReview(req,res){
   data = new Date();
-  strdate = data.getDate()+"/"+data.getMonth()+"/"+data.getFullYear()
-
-  newItem = {
-        "name": username,
-        "text": req.body.rev,
-        "date": strdate
-      }
+  mese=data.getMonth() +1;
+  strdate = data.getDate()+"/"+mese+"/"+data.getFullYear()
+  console.log("body funzioneupdatereview: %j", req.body)
+  if (req.body.baseUrl!=''){
+    newItem={
+        
+          "name": username,
+          "text": req.body.rev,
+          "date": strdate,
+          "photo": req.body.baseUrl
+        
+      
+    }
+  } 
+  else{
+    newItem={
+          "name": username,
+          "text": req.body.rev,
+          "date": strdate,
+          "photo": ''
+        }
+      
+    
+  }
   infodb.reviews.push(newItem);
 
   request({
@@ -608,14 +737,15 @@ function updateReview(req,res){
 
 //feedback
 app.get('/newfeedback', function(req, res){
+  feedbackposting=true;
+  xid='';
   res.render('feedback', {inviato : false, gconnected: gconnected, photo: ""})
 })
 
 app.post('/newfeedback', function(req,res){
-  const obj = JSON.parse(JSON.stringify(req.body));
-  console.log(obj);
-  if (obj.baseUrl){
-    res.render('feedback', {inviato: false, gconnected: gconnected, photo: obj.baseUrl})
+  console.log("bodyfeed: %j", req.body);
+  if (req.body.baseUrl.length>=1){
+    res.render('feedback', {inviato: false, gconnected: gconnected, photo: req.body.baseUrl})
   }
   else{
     res.responde('error')
@@ -623,12 +753,21 @@ app.post('/newfeedback', function(req,res){
   
 })
 
+let id
 app.post('/feedback', function(req, res){
+  date = new Date();
+  mese=date.getMonth() +1;
+  strdate = date.getDate()+"/"+mese+"/"+date.getFullYear()
+  id = Math.round(Math.random()*10000);
   var data = {
+    id: id,
+    date: date,
     email: email,
     name: username,
-    text : req.body.feed
+    text : req.body.feed,
+    photo: req.body.baseUrl
   }
+
   connect();
   async function connect() {
 
@@ -638,7 +777,9 @@ app.post('/feedback', function(req, res){
       const result = channel.assertQueue("feedback")
       channel.sendToQueue("feedback", Buffer.from(JSON.stringify(data)))
       console.log('Feedback sent succefully')
-      res.render('feedback', {inviato : true, gconnected: gconnected})
+      updateFeedback(data)
+      res.render('feedback', {inviato : true})
+      feedbackposting=false;
     }
     catch(error){
       console.error(error);
@@ -646,7 +787,46 @@ app.post('/feedback', function(req, res){
   }
 })
 
+
+
+function updateFeedback(data){
+  request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
+
+    var db = JSON.parse(body)
+    newItem = {
+      "feedback_id": id,
+      "date": data.date,
+      "text": data.text,
+      "read": false,
+      "photo": data.baseUrl
+    }
+    db.feedbacks.push(newItem);
+
+    request({
+      url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(db)
+  
+    }, function(error, response, body){
+      if(error) {
+        console.log(error);
+      } else {
+        console.log(response.statusCode, body);
+      }
+    });
+
+  })
+}
+
+
+
 app.get('/',function (req,res){
+  if (fconnected){
+    res.redirect('/homepage');
+  }
   res.render('index.ejs',{check:"false"});
 });
 
@@ -655,7 +835,7 @@ app.get('/bootstrap.min.css',function (req,res){
   res.sendFile(path.resolve('bootstrap.min.css'));
 });
 
-app.get('/404',function(req,res){
+app.get('/error',function(req,res){
   res.render('404');
 })
 

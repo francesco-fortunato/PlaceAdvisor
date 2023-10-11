@@ -11,7 +11,18 @@
     <% } %>
     
     Vuoi continuare? 
-    <a href= "http://localhost:8000/driveapi">
-        <button type= 'button'>YES!!</button>
-      </a>
+    <% if (xid!= ''){ %>
+        <% var urll= "http://localhost:8000/details?xid="+xid; %>
+        <a href= <%=urll %>>
+            <button type= 'button'>YES!!</button>
+        </a> 
+    <% } else if (feedbackposting==true) { %>
+        <a href= "http://localhost:8000/newfeedback">
+            <button type= 'button'>YES!!</button>
+        </a>
+    <% } else { %>
+        <a href= "http://localhost:8000/homepage">
+            <button type= 'button'>YES!!</button>
+        </a>
+    <% } %>
 </html>
