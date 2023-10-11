@@ -23,6 +23,8 @@ let gconnecting=false;
 let lconnected=false;
 let username;
 var fbinfo;
+var reviewposting=false;
+var feedbackposting=false;
 
 
 app.post('/',function (req,res){
@@ -32,7 +34,7 @@ app.post('/',function (req,res){
 
 app.post('/userinfo', function(req,res){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+req.body.username,
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -44,17 +46,14 @@ app.post('/userinfo', function(req,res){
       } else {
           console.log(response.statusCode, body);
           infousers=JSON.parse(body);
-          if (!infousers.error){
-            if (checkUsername(req,res)==true){
-              updateUser(req,res);
-            }
-            else{
-              res.redirect('signup');
-            }
+
+          if (infousers.error){
+            res.render('signup', {check: false})
           }
           else{
-            newUser(req,res);
+            newUser(req,res)
           }
+          
       }
     });
   });
@@ -63,7 +62,7 @@ let check;
 
 function gestisciAccesso(req,res){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+req.body.username,
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -115,22 +114,26 @@ function checkUsername(req,res){
 
 function newUser(req,res){
 
-  body1={
-    "users": [
+  body={
+    "info":
       {
+        "name": req.body.name,
+        "surname": req.body.surname,
         "username": req.body.username,
-        "password": req.body.password
-      }
-    ]
+        "password": req.body.password,
+      },
+      "reviews": [],
+      "feedback":[]
+    
   };
   
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+req.body.username,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
     },
-    body: JSON.stringify(body1)
+    body: JSON.stringify(body)
     
   }, function(error, response, body){
       if(error) {
@@ -142,31 +145,6 @@ function newUser(req,res){
   });
 }
 
-function updateUser(req,res){
-
-  newItem = {
-        "username": req.body.username,
-        "password": req.body.password
-      }
-  infousers.users.push(newItem);
-
-  request({
-    url: 'http://admin:admin@127.0.0.1:5984/my_database/users',
-    method: 'PUT',
-    headers: {
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify(infousers)
-    
-  }, function(error, response, body){
-      if(error) {
-          console.log(error);
-      } else {
-          console.log(response.statusCode, body);
-          res.redirect('/');
-      }
-  });
-}
 
 app.get('/facebooklogin',function (req,res){
   fconnecting=true;
@@ -188,7 +166,7 @@ app.get('/homepage', function (req,res){
   if (!gconnecting){
     if(fconnecting){
       if(fconnected){
-        res.render('homepage', {fconnected:fconnected, username:username})
+        res.render('homepage', {fconnected:fconnected, gconnected:gconnected, username:username})
       }
       else{
         res.redirect('/ftoken?code='+code);
@@ -197,7 +175,7 @@ app.get('/homepage', function (req,res){
   }
   else if(gconnecting){
     if(gconnected){
-      res.render('homepage', {fconnected: fconnected, username: "gusername"}) //Ancora da implementare
+      res.render('homepage', {fconnected: fconnected, gconnected:gconnected, username: "gusername"}) //Ancora da implementare
     }
     else{
       res.redirect('/gtoken?code='+code);
@@ -205,13 +183,13 @@ app.get('/homepage', function (req,res){
  
   }
 
-  else if(lconnected) res.render('homepage', {fconnected:fconnected, username:username})
+  else if(lconnected) res.render('homepage', {fconnected:fconnected, gconnected:gconnected, username:username})
   else res.redirect('/');
 })
 
-//acquisisci google token
 app.get('/gtoken', function(req, res){
   
+//acquisisci google token
   console.log(req.query.code)
   var formData = {
     code: req.query.code,
@@ -234,6 +212,12 @@ app.get('/gtoken', function(req, res){
       gconnected = true;
       console.log("Got the token "+ info.access_token);
       res.render('continue.ejs', {gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected, lconnected: lconnected})
+      //if(feedbackposting=true){
+       // res.render('feedback.ejs', {inviato: false, gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected, lconnected: lconnected})
+      //}
+      //else if (reviewposting=true){
+      //res.render('new_review.ejs', {inviato: false, gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected, lconnected: lconnected})
+      //}
       
     }
   })
@@ -263,14 +247,14 @@ app.get('/ftoken',function (req,res){
     else{
       ftoken = info.access_token;
       fconnected = true;
-      res.render('continue.ejs', {gtoken : gtoken, ftoken:ftoken, gconnected:gconnected, fconnected:fconnected, lconnected: lconnected})
+      res.redirect('fb_pre_access')
     }
   });
 });
 
 var fbinfo;
-app.get('/user_info',function (req,res){
 
+app.get('/fb_pre_access',function (req,res){
   var url = 'https://graph.facebook.com/me?fields=id,first_name,last_name,picture,email&access_token='+ftoken
         var headers = {'Authorization': 'Bearer '+ftoken};
         var request = require('request');
@@ -284,16 +268,100 @@ app.get('/user_info',function (req,res){
                 var stringified = JSON.stringify(body1);
                 stringified = stringified.replace('\u0040', '@');
                 var parsed =JSON.parse(stringified);
-                username=parsed.name;
-                fbinfo=parsed;
-                res.redirect('/homepage');
-            });
+                email = parsed.email
+                fbinfo=parsed
+
+                //CONTROLLO SE ESISTE L'UTENTE NEL DB
+                request({
+                    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+                    method: 'GET',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify(body1)
+  
+                  }, function(error, response, body){
+                        if(error) {
+                          console.log(error);
+                        } else {
+                          console.log(response.statusCode, body);
+                          var info = JSON.parse(body)
+                          
+                          if(info.error){
+                            res.redirect('fbsignup') //Utente non esiste quindi lo faccio registrare
+                          }
+                          else{
+                            username=info.username
+                            res.redirect('homepage')   
+                          }
+                        }
+                    });
+          });
+})
+
+
+
+
+
+
+
+
+
+let email
+app.get('/fbsignup', function(req,res){
+  res.render('fbsignup', {fconnected: fconnected,check: false,username: username,ftoken:ftoken});
+})
+app.post('/fbsignup',function (req,res){
+  username = req.body.username
+  
+  body1={
+    
+    "name": fbinfo.first_name,
+    "surname": fbinfo.last_name,
+    "email": email,
+    "username": username,
+    "picture": {
+      "url": fbinfo.picture.data.url,
+      "height": fbinfo.picture.data.height,
+      "width": fbinfo.picture.data.width
+    },
+    "reviews": [],
+    "feedbacks":[]
+  
+};
+
+  request({
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(body1)
+  
+  }, function(error, response, body){
+      if(error) {
+        console.log(error);
+      } else {
+        console.log(response.statusCode, body);
+        res.render('homepage', {fconnected: fconnected,username: username});
+      }
+  });
 
 });
 
+
+
+
+
+
+
 app.get('/info', function(req, res){
   if (fconnected && fbinfo!=undefined){
-    res.render('user_info', {data:fbinfo});
+    request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
+      var data = JSON.parse(body)
+      res.render('user_info', {data: data});
+    })
+    
   }
   else{
     res.render('user_info', {data: ""});
@@ -339,20 +407,16 @@ app.get('/app', function(req,res){
     var info = JSON.parse(body);
     data = info.features;
     n = data.length;
+    cate = cate.replace('_', ' ');
 
-    //tolgo "_" dalla categoria
-    category =""
-    cate = cate.split("_")
-    for(var i=0; i<cate.length; i++) category+=cate[i]+" " 
-    //fatto
-
-    res.render('list_places', {numero: n, data: data, cat: category, citta: city});
+    res.render('list_places', {numero: n, data: data, cat: cate, citta: city});
   })
 });
 
 
 let info
 let xid
+let place_name
 let infodb
 app.get('/details', function(req,res){
 
@@ -364,19 +428,20 @@ app.get('/details', function(req,res){
   
   request.get(options,function callback(error, response, body){
     info = JSON.parse(body);
-    //Con ejs
-
-    request.get('http://admin:admin@127.0.0.1:5984/my_database/'+xid, function callback(error, response, body){
+    place_name=info.name
+    console.log('\r\n'+place_name+'\r\n')
+    request.get('http://admin:admin@127.0.0.1:5984/reviews/'+xid, function callback(error, response, body){
       if(error) {
         console.log(error);
       } else {
         console.log(response.statusCode, body);
         infodb = JSON.parse(body);
-        if(infodb.error != undefined){
+        if(infodb.error){
           reviews_check=false
           res.render('details', {fconnected: fconnected,info: info, xid: xid, lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, reviews: ""});
         } 
         else{
+          
           reviews_check=true
           res.render('details', {fconnected:fconnected,info: info, xid: xid, reviews: infodb.reviews,n: infodb.reviews.length,lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API});
         }
@@ -390,10 +455,8 @@ app.get('/details', function(req,res){
 app.get('/driveapi', function(req,res){
   var url = 'https://photoslibrary.googleapis.com/v1/mediaItems'
 	var headers = {'Authorization': 'Bearer '+gtoken};
-	
-  
-    var request = require('request');
 
+  var request = require('request');
 
 	request.get({
 		headers: headers,
@@ -425,18 +488,68 @@ app.get('/logout',function(req,res){
 
 let reviews_check
 let reviews_rev
-app.post('/reviews', function(req,res){
 
+app.get('/newreview', function(req, res){
+  reviewposting=true;
+  res.render('new_review.ejs', {gconnected: gconnected})
+})
+app.post('/reviews', function(req,res){
+  reviewposting=false;
   if(!reviews_check) newReview(req,res);
   else updateReview(req,res);
+
+  updateUserReviews(req,res); //Inserisco la recensione nel doc utente
   
 });
 
+function updateUserReviews(req,res){
+  request({
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+    method: 'GET',
+    headers: {
+      'content-type': 'application/json'
+    },
+    
+  }, function(error, response, body){
+      if(error) {
+          console.log(error);
+      } else {
+        var info = JSON.parse(body)
+        console.log('\r\n'+place_name+'\r\n')
+        data = new Date();
+        strdate = data.getDate()+"/"+data.getMonth()+"/"+data.getFullYear()
+        item={
+          "xid": xid,
+          "place": place_name,
+          "text": req.body.rev,
+          "date": strdate
+        }
+        info.reviews.push(item)
+        request({
+          url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(info)
+          
+        }, function(error, response, body){
+            if(error) {
+                console.log(error);
+            } else {
+                console.log(response.statusCode, body);
+      
+            }
+        });
+
+      }
+  });
+}
 
 function newReview(req,res){
   data = new Date();
   strdate = data.getDate()+"/"+data.getMonth()+"/"+data.getFullYear()
-  body1={
+  item={
     "reviews": [
       {
         "name": username,
@@ -445,14 +558,14 @@ function newReview(req,res){
       }
     ]
   };
-  
+
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/my_database/'+xid,
+    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
     },
-    body: JSON.stringify(body1)
+    body: JSON.stringify(item)
     
   }, function(error, response, body){
       if(error) {
@@ -476,7 +589,7 @@ function updateReview(req,res){
   infodb.reviews.push(newItem);
 
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/my_database/'+xid,
+    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -494,12 +607,25 @@ function updateReview(req,res){
 }
 
 //feedback
-app.get('/feedback', function(req, res){
-  res.render('feedback', {inviato : false})
+app.get('/newfeedback', function(req, res){
+  res.render('feedback', {inviato : false, gconnected: gconnected, photo: ""})
+})
+
+app.post('/newfeedback', function(req,res){
+  const obj = JSON.parse(JSON.stringify(req.body));
+  console.log(obj);
+  if (obj.baseUrl){
+    res.render('feedback', {inviato: false, gconnected: gconnected, photo: obj.baseUrl})
+  }
+  else{
+    res.responde('error')
+  }
+  
 })
 
 app.post('/feedback', function(req, res){
   var data = {
+    email: email,
     name: username,
     text : req.body.feed
   }
@@ -512,7 +638,7 @@ app.post('/feedback', function(req, res){
       const result = channel.assertQueue("feedback")
       channel.sendToQueue("feedback", Buffer.from(JSON.stringify(data)))
       console.log('Feedback sent succefully')
-      res.render('feedback', {inviato : true})
+      res.render('feedback', {inviato : true, gconnected: gconnected})
     }
     catch(error){
       console.error(error);
