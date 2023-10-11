@@ -7,14 +7,16 @@
     <script>
     </script>
     <h1>Ecco le tue informazioni</h1>
-    <%var photourl= data.picture.url ; %>
+    
+    
     <ul>
         <li>Username: <%= data.username%></li>
         <li>Nome: <%= data.name%></li>
         <li>Cognome: <%= data.surname%></li>
         <li>E-mail : <%= data.email%></li>
+        <%if(data.picture.url!=undefined){ var photourl= data.picture.url ; %>
         <li>Picture: <img src=<%= photourl  %> width=<%=data.picture.width%> height=<%=data.picture.height%>>
-    
+        <%}%>
     </ul>
         <% if(data.reviews.length>0){ %>
             <h2>Le tue recensioni:</h2><br>
@@ -40,9 +42,9 @@
             <ul>
             <% for(var i=0;i < data.feedbacks.length; i++) {%>
                 <li>Testo: <%= data.feedbacks[i].text%></li>
-                <% if (data.feedbacks[i].photo!="") { %>
+                <% if (data.feedbacks[i].photo.length>1) { %>
                     
-                <li>Immagine: <img src= <%= data.feedbacks[i].photo %> width="200" height="200"></li> 
+                    <li>Immagine: <img src= <%= data.feedbacks[i].photo %> width="200" height="200"></li> 
                 <% } %>
                 <% if(data.feedbacks[i].read==true){%>
                     <h4>Questo feedback è stato letto dall'assistenza clienti</h4> 
