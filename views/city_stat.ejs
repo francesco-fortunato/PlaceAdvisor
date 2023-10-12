@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+  <title>Statistiche</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="viewport" content="width=device-width initial-scale=1.0"/>
+  <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+</head>
+
+<body class="text-center">
+  <h2 >Le prime 10 città più ricercate nel nostro sito:</h2>
+  <ol>
+    <% for(var i=0; i < data.length; i++) {%>
+      <%var times="volte"%>
+      <%if(data[i].search==1){ times="volta"}%>
+      
+      <li>
+        <h4><%=data[i].city %> cercata <%=data[i].search%> <%=times%></h4>
+      </li>
+    <%}%>
+  </ol>
+  
+</body>
+
+</html>
