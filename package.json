@@ -1,7 +1,7 @@
 {
-  "name": "trip-app",
-  "version": "1.0.0",
-  "description": "This is a Trip App",
+  "name": "placeadvisor",
+  "version": "1.0.1",
+  "description": "Laboratory of Advanced Programming project",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -29,7 +29,10 @@
     "express": "^4.17.1",
     "image-to-base64": "^2.2.0",
     "path": "^0.12.7",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "swagger-jsdoc": "^6.0.1",
+    "swagger-ui-express": "^4.1.6",
+    "ws": "^7.4.5"
   },
   "bugs": {
     "url": "https://github.com/francesco-fortunato/PlaceAdvisor/issues"

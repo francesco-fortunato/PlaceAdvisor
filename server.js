@@ -9,11 +9,36 @@ const { ADDRGETNETWORKPARAMS } = require('dns');
 var amqp = require('amqplib'); //Protocollo amqp per rabbitmq
 const imageToBase64 = require('image-to-base64'); //Usato per codificare le immagini in base-64
 const WebSocket = require('ws');  
+const swaggerJsDoc= require('swagger-jsdoc');
+const swaggerUi= require('swagger-ui-express');
 require('dotenv').config()
 
 //dico a node di usare il template engine ejs e setto la cartella views per i suddetti file
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
+
+
+//Extended https://swagger.io/specification/
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.1',
+    info: {
+      title: "PlaceAdvisor",
+      description: "Web App that allows you to find and review all kind of places",
+      contact: {
+        name: "Fortunato Francesco, Santaroni Cristian",
+      },
+    },
+    servers: [{
+      url: "http://localhost:8000"
+    }],
+  },
+
+  apis: ["server.js"]
+}
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 
 const wss = new WebSocket.Server({ port:8080 });
@@ -47,14 +72,217 @@ let lconnected=false;
 let username;
 let email
 var fbinfo;
-var reviewposting=false;
+var codice;
 var feedbackposting=false;
 var xid='';
 
 
+// Routes
+/**
+ * @swagger
+ *components:
+ *  schemas:
+ *    Review:
+ *      type: object
+ *      properties:
+ *        codice:
+ *          type: integer
+ *        posto:
+ *          type: string
+ *        xid:
+ *          type: string
+ *        name:
+ *          type: string
+ *        text:
+ *          type: string
+ *        date:
+ *          type: string
+ *        photo:
+ *          type: string
+ *          format: byte
+ * 
+ *    Feedback:
+ *      type: object
+ *      properties:
+ *        feedback_id:
+ *          type: integer
+ *        date:
+ *          type: integer
+ *          format: date-time
+ *        text:
+ *          type: string
+ *        read: 
+ *          type: boolean
+ *        photo:
+ *          type: string
+ *          format: byte
+ * 
+ *    User:
+ *      type: object
+ *      properties:
+ *        id:
+ *          type: string
+ *          format: email
+ *        name: 
+ *          type: string
+ *        surname: 
+ *          type: string
+ *        email:
+ *          type: string
+ *          format: email
+ *        username:
+ *          type: string
+ *        picture:
+ *          type: object
+ *          properties:
+ *            url:
+ *              type: string
+ *            height:
+ *              type: integer
+ *            width:
+ *              type: integer        
+ *        reviews:
+ *          type: array
+ *          items:
+ *            $ref: "#/components/schemas/Review"
+ *        feedbacks:
+ *          type: array
+ *          items:
+ *            $ref: "#/components/schemas/Feedback"
+ *      required:
+ *        - id
+ *        - name
+ *        - surname
+ *        - email
+ *        - username
+ *        - picture
+ *        - reviews
+ *        - feedbacks
+ *      example:
+ *        id: test_zreyrfg_user@tfbnw.net
+ *        name: Test
+ *        surname: User
+ *        email: test_zreyrfg_user@tfbnw.net
+ *        username: admin
+ *        picture: 
+ *          url: https://scontent.fbri2-1.fna.fbcdn.net/v/t1.30497-1/cp0/c15.0.50.50a/p50x50/84628273_176159830277856_972693363922829312_n.jpg?_nc_cat=1&ccb=1-3&_nc_sid=12b3be&_nc_ohc=a1FpfWt5x6AAX91xNSJ&_nc_ht=scontent.fbri2-1.fna&tp=27&oh=4fcc1133fc4c4add1bb1acbab9a03686&oe=60D166B8
+ *          height: 50
+ *          width: 50
+ *        reviews:
+ *          - codice: 1621946497140
+ *          - Posto: Hypogeum of the Aurelii
+ *          - xid: N3594410888
+ *          - name: admin
+ *          - text: dbbs
+ *          - date: 25/5/2021
+ *          - photo:  
+ *        feedbacks: 
+ *          - feedback_id: 2740
+ *          - date: 2021-05-25T12:44:14.418Z
+ *          - text: bfsbdsbs
+ *          - read: false
+ *          - photo: 
+ *        
+ *   
+ *  
+ */
+
+/**
+ * @swagger
+ * paths:
+ *  /:
+ *    get:
+ *      tags: [Root]
+ *      responses:
+ *        200: 
+ *          description: restituisce la pagina index.ejs
+ *    post:
+ *      tags: [Facebook OAuth]
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/x-www-form-urlencoded:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                sub:       
+ *                  type: string
+ *              example: Accedi con Facebook
+ *      responses:
+ *        200:
+ *          description: ok
+ * 
+ *  /facebooklogin:
+ *    get:
+ *      tags: [Facebook OAuth]
+ *      responses:
+ *        202:
+ *          description: OK
+ * 
+ * 
+ *  /homepage:
+ *    get:
+ *      tags: [Home]
+ *      parameters:
+ *        - in: query
+ *          name: code
+ *          schema:
+ *            type: string
+ *            description: Authentication Code ricevuto da Google/Fb
+ *      responses:
+ *        200: 
+ *          description: HTML HOMEPAGE
+ *        403:
+ *          description: Error 403. User not authenticated
+ * 
+ * 
+ *  /gtoken:
+ *    get:
+ *      tags: [Google OAuth]
+ *      parameters:
+ *        - in: query
+ *          name: code
+ *          required: true
+ *          schema:
+ *            type: string
+ *            description: Authentication Code ricevuto da Google
+ *      responses:
+ *        200:
+ *          description: HTML token page
+ *        404:
+ *          description: Invalid Grant, malformed auth code.
+ *  /info:
+ *    get:
+ *      tags: [User]
+ *      responses:
+ *        200:
+ *          description: HTML user_info
+ *        403:
+ *          description: HTML error page. user not authenticated
+ *    
+ * 
+ *  
+ */
+
+
+
+app.get('/',function (req,res){
+  if (fconnected){
+    res.redirect('/homepage');
+  }
+  else{
+    res.render('index', {check: false, registrazione: false});
+  }
+});
+
+
 app.post('/',function (req,res){
-  if(req.body.sub == 'Accedi con Facebook') res.redirect('/facebooklogin')
-  else gestisciAccessoLocale(req,res);
+  if(req.body.sub == 'Accedi con Facebook'){
+    res.redirect('/facebooklogin')
+  }
+  else {
+    res.redirect(404, '/error?statusCode=404')
+  }
 })
 
 app.post('/userinfo', function(req,res){
@@ -155,7 +383,7 @@ function newUser(req,res){
 
 app.get('/facebooklogin',function (req,res){
   fconnecting=true;
-  res.redirect("https://www.facebook.com/v10.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.FB_CLIENT_ID+"&redirect_uri=http://localhost:8000/homepage&response_type=code");
+  res.status(201).redirect("https://www.facebook.com/v10.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.FB_CLIENT_ID+"&redirect_uri=http://localhost:8000/homepage&response_type=code");
 });
 
 app.get('/googlelogin', function(req, res){
@@ -184,11 +412,11 @@ app.get('/homepage', function (req,res){
         res.render('homepage', {fconnected:fconnected, gconnected:gconnected, username:username})
       }
       else{
-        res.redirect('/ftoken?code='+code);
+        res.status(201).redirect('/ftoken?code='+code);
       }
     }
     else{
-      res.redirect(404, '/error')
+      res.redirect(403, '/error?statusCode=403')
     }
   }
   else if(gconnecting){
@@ -224,7 +452,7 @@ app.get('/gtoken', function(req, res){
     console.log('Upload successful!  Server responded with:', body);
     var info = JSON.parse(body);
     if(info.error != undefined){
-      res.redirect(404, '/error' );
+      res.redirect(404, '/error?statusCode=404' );
     }
     else{
       gtoken = info.access_token; //prendo l'access token
@@ -385,7 +613,7 @@ app.get('/info', function(req, res){
     })
   }
   else{
-    res.redirect(404, 'error')
+    res.redirect(403, '/error?statusCode=403')
   }
   
 })
@@ -510,7 +738,7 @@ app.get('/city_info', function(req,res){
 
 app.get('/app', function(req,res){
   if(!fconnected){
-    res.redirect(404, '/error')
+    res.redirect(404, '/error?statusCode=404')
     return
   }
   else{
@@ -546,7 +774,7 @@ let icon_url
 
 app.get('/details', function(req,res){
   if(!fconnected){
-    res.redirect(404, '/error')
+    res.redirect(404, '/error?statusCode=404')
   }
   else{
     console.log(req.query)
@@ -583,8 +811,8 @@ app.get('/details', function(req,res){
           console.log(info_weather);
           meteo=info_weather.weather[0].description;
           icon_id=info_weather.weather[0].icon;
-          console.log(meteo);
-          console.log(icon_id);
+          //console.log(meteo);
+          //console.log(icon_id);
           icon_url="http://openweathermap.org/img/wn/"+icon_id+"@2x.png"
           if(infodb.error){
             reviews_check=false     //Non ci sono recensioni
@@ -611,7 +839,7 @@ app.get('/details', function(req,res){
 var numpag;
 app.get('/googlephotosapi', function(req,res){
   if(!gconnected){
-    res.redirect(404, '/error')
+    res.redirect(404, '/error?statusCode=404')
   }
   if (req.query.stato == 'feed'){
     feedbackposting=true;   //ritornerà la foto nel feedback
@@ -680,12 +908,13 @@ app.get('/googlephotosapi', function(req,res){
 
 
 
+
 app.get('/logout',function(req,res){
   if (fconnected){
     res.render('logout.ejs', {user:username})
   }
   else{
-    res.redirect(404, '/error')
+    res.redirect(404, '/error?statusCode=404')
   }
 })
 
@@ -699,15 +928,35 @@ app.post('/logout', function(req,res){
 })
 
 
+//post recensione:
 let reviews_check
 
 app.post('/reviews', function(req,res){
-
+  codice = Date.now();
   if(!reviews_check) newReview(req,res);  //Se non esiste il documento nel db lo creo
   else updateReview(req,res);             //Altrimenti aggiorno quello esistente
   updateUserReviews(req,res);             //Inserisco la recensione anche nel doc utente
   
 });
+
+//elimina recensione:
+
+app.post('/elimina', function(req,res){
+  const obj = JSON.parse(JSON.stringify(req.body));
+  console.log(obj)
+  try {
+    deletereviewfromUser(obj.codice)
+    deletereviewfromCity(obj.codice, obj.xid)
+    res.render('eliminated', {cod: obj.codice})
+  } catch (error) {
+    console.log(error)
+    res.redirect(404, '/error?statusCode=404')
+    return
+  }
+  
+
+})
+
 
 function updateUserReviews(req,res){
   request({
@@ -735,13 +984,15 @@ function updateUserReviews(req,res){
             console.log(response); // "iVBORw0KGgoAAAANSwCAIA..."
             encoded=response;
             item={
-                "xid": xid,
-                "name": username,
-                "text": req.body.rev,
-                "date": strdate,
-                "photo": encoded
-              }
-              info.reviews.push(item)
+              "codice": codice,
+              "Posto": place_name,
+              "xid": xid,
+              "name": username,
+              "text": req.body.rev,
+              "date": strdate,
+              "photo": encoded
+            }
+            info.reviews.push(item)
         request({
           url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
           method: 'PUT',
@@ -758,7 +1009,7 @@ function updateUserReviews(req,res){
       
             }
         });
-        }
+      }
     )
     .catch(
         (error) => {
@@ -771,14 +1022,14 @@ function updateUserReviews(req,res){
         } 
         else{
           item={
+            "codice": codice,
+            "Posto": place_name,
+            "xid": xid,
+            "name": username,
+            "text": req.body.rev,
+            "date": strdate,
+            "photo": '',
               
-                "xid": xid,
-                "name": username,
-                "text": req.body.rev,
-                "date": strdate,
-                "photo": '',
-              
-            
           }
         
         info.reviews.push(item)
@@ -799,7 +1050,7 @@ function updateUserReviews(req,res){
             }
         });
       }
-      }
+    }
   });
 }
 
@@ -817,6 +1068,7 @@ function newReview(req,res){
             item={
               "reviews": [
                 {
+                  "codice": codice,
                   "name": username,
                   "text": req.body.rev,
                   "date": strdate,
@@ -852,6 +1104,7 @@ function newReview(req,res){
     item={
       "reviews": [
         {
+          "codice": codice,
           "name": username,
           "text": req.body.rev,
           "date": strdate,
@@ -893,7 +1146,7 @@ function updateReview(req,res){
         //console.log(response); "iVBORw0KGgoAAAANSwCAIA..."
         encoded=response;      //salviamo la striga
         newItem={
-        
+          "codice": codice,
           "name": username,
           "text": req.body.rev,
           "date": strdate,
@@ -928,11 +1181,12 @@ function updateReview(req,res){
   } 
   else{
     newItem={
-          "name": username,
-          "text": req.body.rev,
-          "date": strdate,
-          "photo": ''
-        }
+      "codice": codice,
+      "name": username,
+      "text": req.body.rev,
+      "date": strdate,
+      "photo": ''
+    }
       
     
   
@@ -957,6 +1211,81 @@ function updateReview(req,res){
 }
 }
 
+function deletereviewfromUser(num){
+  request({
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+    method: 'GET',
+    headers: {
+      'content-type': 'application/json'
+    },
+    
+  }, function(error, response, body){
+      if(error) {
+        console.log(error);
+      } else {
+        var info = JSON.parse(body)
+        for(h = 0; h<info.reviews.length; h++){
+          if (info.reviews[h].codice==num){
+            info.reviews.splice(h, 1)
+          } 
+        }
+        request({
+          url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(info)
+          
+        }, function(error, response, body){
+            if(error) {
+                console.log(error);
+            } else {
+                console.log(response.statusCode, body);
+            }
+        })
+      }
+    })
+}
+
+
+function deletereviewfromCity(num, cod){
+  request({
+    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+cod,
+    method: 'GET',
+    headers: {
+      'content-type': 'application/json'
+    },
+    
+  }, function(error, response, body){
+      if(error) {
+          console.log(error);
+      } else {
+        var info = JSON.parse(body)
+        for(h = 0; h<info.reviews.length; h++){
+          if (info.reviews[h].codice==num){
+            info.reviews.splice(h, 1)
+          } 
+        }
+        request({
+          url: 'http://admin:admin@127.0.0.1:5984/reviews/'+cod,
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(info)
+          
+        }, function(error, response, body){
+            if(error) {
+                console.log(error);
+            } else {
+                console.log(response.statusCode, body);
+            }
+        })
+      }
+    })
+}
+
 //feedback
 app.get('/newfeedback', function(req, res){
   feedbackposting=true;
@@ -970,7 +1299,7 @@ app.post('/newfeedback', function(req,res){
     res.render('feedback', {inviato: false, gconnected: gconnected, photo: req.body.baseUrl})
   }
   else{
-    res.responde('error')
+    res.redirect(404, '/error?statusCode=404')
   }
   
 })
@@ -1063,22 +1392,12 @@ function updateFeedback(data,res){
   })
 }
 
-
-
-app.get('/',function (req,res){
-  if (fconnected){
-    res.redirect('/homepage');
-  }
-  res.render('index', {check: false, registrazione: false});
-});
-
-
 app.get('/bootstrap.min.css',function (req,res){
   res.sendFile(path.resolve('bootstrap.min.css'));
 });
 
 app.get('/error',function(req,res){
-  res.render('404');
+  res.render('error', {statusCode: req.query.statusCode, fconnected: fconnected});
 })
 
 var server = app.listen(8000, function () {
