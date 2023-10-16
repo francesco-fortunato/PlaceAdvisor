@@ -5,8 +5,9 @@ var bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: false }));
 const path = require('path');
 var request = require('request');
+var jwt = require('jsonwebtoken');
 var cookieParser= require('cookie-parser');//Usiamo i cookie per: rendere stateless, ridurre l'impatto di attacchi di denial of service e facilita la replicazione di db nel caso di ambienti load-balanced
-var cors = require('cors');
+var cookieEncrypter = require('cookie-encrypter');
 const { ADDRGETNETWORKPARAMS } = require('dns');
 var amqp = require('amqplib'); //Protocollo amqp per rabbitmq
 const imageToBase64 = require('image-to-base64'); //Usato per codificare le immagini in base-64
@@ -15,13 +16,32 @@ const swaggerJsDoc= require('swagger-jsdoc'); //usato per la documentazione
 const swaggerUi= require('swagger-ui-express'); //usato per la documentazione
 require('dotenv').config()
 
-app.use(cookieParser())
-app.use(cors())
+const secretKey = process.env.SECRETKEY;
+
+app.use(cookieParser(secretKey));
+app.use(cookieEncrypter(secretKey));
+
 
 //dico a node di usare il template engine ejs e setto la cartella views per i suddetti file
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
+
+//Funzione di middleware per l'autenticazione
+
+function authenticateToken(req, res, next) {
+  const token = req.signedCookies.jwt
+
+  if (token == null) return res.sendStatus(401)
+
+  jwt.verify(token, secretKey, (err, token) => {
+    console.log(err)
+
+    if (err) return res.sendStatus(403)
+    req.token=token
+    next()
+  })
+}
 
 //Extended https://swagger.io/specification/
 const swaggerOptions = {
@@ -64,23 +84,7 @@ wss.on('connection', function connection(ws) {
   });
 });
 
-
-
-var gtoken="";
-let fconnected=false;
-let fconnecting=false;
-let gconnected=false;
-let gconnecting=false;
-let lconnected=false;
-let username;
-let email
 var codice;
-var feedbackposting=false;
-var xid='';
-
-
-
-
 
 /**
  * @swagger
@@ -104,7 +108,15 @@ var xid='';
  *    fbcookieAuth:         # arbitrary name for the security scheme; will be used in the "security" key later
  *      type: apiKey
  *      in: cookie
- *      name: fbaccess_token
+ *      name: fbaccess_token 
+ *    gcookieAuth:         # arbitrary name for the security scheme; will be used in the "security" key later
+ *      type: apiKey
+ *      in: cookie
+ *      name: googleaccess_token
+ *    JWT:
+ *      type: apiKey
+ *      in: cookie
+ *      name: jwt
  *  schemas:
  *    Review:
  *      type: object
@@ -197,14 +209,14 @@ var xid='';
  *          - Posto: Hypogeum of the Aurelii
  *          - xid: N3594410888
  *          - name: admin
- *          - text: dbbs
+ *          - text: Molto bello!!
  *          - date: 25/5/2021
  *          - photo:  
  *        feedbacks: 
  *          - feedback_id: 2740
  *          - date: 2021-05-25T12:44:14.418Z
- *          - text: bfsbdsbs
- *          - read: false
+ *          - text: Non mi piace per niente
+ *          - read: true
  *          - photo: 
  *        
  *   
@@ -243,7 +255,7 @@ var xid='';
  * 
  *  /homepage:
  *    get:
- *      tags: [Home]
+ *      tags: [Callback]
  *      parameters:
  *        - in: query
  *          name: code
@@ -258,6 +270,23 @@ var xid='';
  *        403:
  *          description: Error 403. User not authenticated
  * 
+ * 
+ *  /home:
+ *    get:
+ *      tags: [Home]
+ *      parameters:
+ *        - in: query
+ *          name: code
+ *          schema:
+ *            type: string
+ *            description: Authentication Code ricevuto da Google/Fb
+ *      security:
+ *        - JWT: []
+ *      responses:
+ *        200: 
+ *          description: HTML HOMEPAGE
+ *        403:
+ *          description: Error 403. User not authenticated
  * 
  *  /gtoken:
  *    get:
@@ -361,9 +390,12 @@ var xid='';
  *        404:
  *          description: Error
  * 
- *  /googlephotoapi:
+ *  /googlephotosapi:
  *    get:
  *      tags: [Google photo]
+ *      security:
+ *        - gcookieAuth: []
+ *        - gidcookieAuth: []
  *      responses:
  *        200:
  *          description: restituisce la pagina gphotos.ejs
@@ -482,7 +514,7 @@ var xid='';
 
 
 app.get('/',function (req,res){
-  if (fconnected){
+  if (req.signedCookies.fbaccess_token!=undefined){
     res.redirect('/homepage');
   }
   else{
@@ -500,9 +532,9 @@ app.post('/',function (req,res){
   }
 })
 
-app.post('/userinfo', function(req,res){
+app.post('/userinfo', authenticateToken, function(req,res){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/'+req.body.email,
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+req.token.info.email,
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -519,7 +551,7 @@ app.post('/userinfo', function(req,res){
             res.render('signup', {check: false})  //Se c'è si deve scegliere un altro username
           }
           else{
-            newUser(req,res)                    //Altrimenti si effettua la registrazione
+            newUser(req,res)                      //Altrimenti si effettua la registrazione
           }
           
       }
@@ -560,7 +592,7 @@ function gestisciAccessoLocale(req,res){
 }
 
 function newUser(req,res){
-
+  fbinfo = req.token.info
   body={
   
       "name": req.body.name,
@@ -605,6 +637,7 @@ app.get('/facebooklogin',function (req,res){
 app.get('/googlelogin', function(req, res){
   gconnecting=true;
   if (req.query.length>0){
+    res.cookie('xid', req.query.xid, {maxAge:315360000000, signed: true, httpOnly: true})
     xid = req.query.xid;  //se si entra dalla pagina delle review, si ritornerà poi a quella pagina, quindi salvo xid
     res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=http://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
   }
@@ -617,9 +650,13 @@ app.get('/signup', function(req, res){
   res.render('signup.ejs',{check: check});
 });
 
+app.get('/home', authenticateToken, function(req,res){
+  token = req.token.info.fbtoken
+  username = req.token.info.info.username
+  res.render('homepage', {fconnected:true, gconnected:false, username:username})
+})
+
 app.get('/homepage', function (req,res){
-  fconnected = false;
-  gconnected = false;
   if (req.query.code!=undefined){  
     if (req.query.scope!=undefined){
       res.redirect('gtoken?code='+req.query.code)
@@ -630,39 +667,9 @@ app.get('/homepage', function (req,res){
     }
   }
   else{
-  if(req.cookies.fbaccess_token!=undefined){
-    token = req.cookies.fbaccess_token
-    //chiamate sincrone che gestiscono se il token è valido o no
-    request.get({
-      url: "https://graph.facebook.com/oauth/access_token?client_id="+process.env.FB_CLIENT_ID+"&client_secret="+process.env.FB_SECRET_KEY+"&grant_type=client_credentials"
-    }, function( error, response, body){
-      console.log(body)
-      resp=JSON.parse(body)
-      tok=encodeURI(resp.access_token)
-      request.get({
-      url: "https://graph.facebook.com/v10.0/debug_token?input_token="+token+"&access_token="+tok
-    }, function(error, response, body){
-      ret=JSON.parse(body)
-      console.log(ret)
-      if (ret.data.is_valid==true){
-        fconnected=true;
-        if (req.cookies.gaccess_token!=undefined){
-          gconnected=true;
-        }
-      
-      res.render('homepage', {fconnected:fconnected, gconnected:gconnected, username:username})
-      }
-      else {
-        res.status(403).render('expired_token')
-      }
-    })
-    })
-  }
-  else{
-      res.status(403).redirect(403, '/error?statusCode=403')
+    res.status(403).redirect(403, '/error?statusCode=403')
   }    
-  
-}
+})
   //check sessioni fb e google
   /*if (!gconnecting){
     if(fconnecting){
@@ -689,13 +696,25 @@ app.get('/homepage', function (req,res){
   */
   //else if(lconnected) res.render('homepage', {fconnected:fconnected, gconnected:gconnected, username:username})
   //else res.render('index', {check:false, registrazione: false});
-})
+//})
 
 //acquisisci google token
 app.get('/gtoken', function(req, res){
-  console.log(req.query.code)
+  var xid;
+  var feedbackposting;
   code = decodeURIComponent(req.query.code)
-
+  if (req.query.stato != undefined){
+    feedbackposting=true;
+  }
+  else{
+    feedbackposting=false
+  }
+  if (req.query.xid!=undefined){
+    xid = req.query.xid
+  }
+  else{
+    xid='';
+  }
   var formData = {
     code: code,
     client_id: process.env.G_CLIENT_ID,
@@ -713,12 +732,15 @@ app.get('/gtoken', function(req, res){
       res.redirect(404, '/error?statusCode=404' );
     }
     else{
-      gtoken = info.access_token; //prendo l'access token
+      googletoken = info.access_token; //prendo l'access token
+      gtoken = info.id_token; 
       gconnected = true;
       console.log("Got the token "+ info.access_token);
-      res.cookie('gaccess_token', gtoken, {maxAge:90000, httpOnly: true})
-      res.json(info)
-      //res.render('continue.ejs', {gtoken : gtoken, gconnected:gconnected, feedbackposting: feedbackposting, xid:xid}) 
+      request.get()
+      res.cookie('gid_token', gtoken, {maxAge:315360000000, signed: true, httpOnly: true})
+      res.cookie('googleaccess_token', googletoken, {maxAge:315360000000, signed: true, httpOnly: true})
+      
+      res.render('continue.ejs', {gtoken : googletoken, gconnected:true, gidtoken: gtoken, feedbackposting: feedbackposting, xid: xid}) 
            
     }
   })
@@ -748,27 +770,27 @@ app.get('/ftoken',function (req,res){
     }
     else{
       ftoken = info.access_token;
-      res.cookie('fbaccess_token', ftoken, {maxAge:90000, httpOnly: true})
-      res.status(200).redirect('/mytoken')
-      //res.redirect('fb_pre_access')
+      res.cookie('fbaccess_token', ftoken, {maxAge:3153600, signed: true, httpOnly: true})
+      //res.status(200).redirect('/mytoken')
+      res.redirect('fb_pre_access')
     }
   });
 });
 
 app.get('/mytoken', function(req,res){
-  if(req.cookies.fbaccess_token!=undefined){
+  if(req.signedCookies.fbaccess_token!=undefined){
     fconnected=true;
-    if (req.cookies.gaccess_token!=undefined){
+    if (req.signedCookies.googleaccess_token!=undefined){
       gconnected=true;
     }
-    res.render('mytoken', {fconnected:fconnected, gconnected: gconnected, ftoken: req.cookies.fbaccess_token})
+    res.render('mytoken', {fconnected:fconnected, gconnected: gconnected, ftoken: req.signedCookies.fbaccess_token})
   }
 })
 
 
 app.get('/fb_pre_access',function (req,res){
-  if (req.cookies.fbaccess_token!=undefined){
-  const ftoken = String(req.cookies.fbaccess_token) 
+  if (req.signedCookies.fbaccess_token!=undefined){
+  const ftoken = String(req.signedCookies.fbaccess_token) 
   }
   var url = 'https://graph.facebook.com/me?fields=id,first_name,last_name,picture,email&access_token='+ftoken
   var headers = {'Authorization': 'Bearer '+ftoken};
@@ -784,10 +806,11 @@ app.get('/fb_pre_access',function (req,res){
       stringified = stringified.replace('\u0040', '@');
       var parsed =JSON.parse(stringified);
       email = parsed.email
-      fbinfo=parsed
+      console.log(email)
+      const fbinfo=parsed
       //CONTROLLO SE ESISTE L'UTENTE NEL DB
       request({
-        url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+        url: 'http://admin:admin@127.0.0.1:5984/users/'+fbinfo.email,
         method: 'GET',
         headers: {
           'content-type': 'application/json'
@@ -802,11 +825,31 @@ app.get('/fb_pre_access',function (req,res){
             var info = JSON.parse(body)
                         
             if(info.error){
-              res.redirect('fbsignup') //Utente non esiste quindi lo faccio registrare
+              jsonobj= {
+                "info": fbinfo,
+                "fbtoken": ftoken
+              }
+              accessToken=jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
+                res.cookie('fbaccess_token', '', {httpOnly: true, signed:true, maxAge:0})
+                res.cookie('jwt', token, {httpOnly: true, signed:true, maxAge:3153600})              
+                console.log('Questo è il JWT!!' + token)
+                res.redirect('/fbsignup') //Utente non esiste quindi lo faccio registrare
+              })
+              
+              
             }
             else{
-              username=info.username
-              res.redirect('homepage')  //Utente esiste, può accedere
+              jsonobj= {
+                "info": info,
+                "fbtoken": ftoken
+              }
+              //da fare: fare in modo che se il jwt esiste=>entra automaticamente
+              jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
+                res.cookie('fbaccess_token', '', {httpOnly: true, signed:true, maxAge:0})
+                res.cookie('jwt', token, {httpOnly: true, signed:true, maxAge:3153600})              
+                console.log('Questo è il JWT!!' + token)
+                res.redirect( 200, '/home')  //Utente esiste, può accedere
+              })
             }
           }
       });
@@ -814,39 +857,42 @@ app.get('/fb_pre_access',function (req,res){
 })
 
 
-app.get('/fbsignup', function(req,res){
-  if (req.cookies.fbaccess_token!=undefined){
-    const ftoken = String(req.cookies.fbaccess_token) 
-    fconnected=true;
-  }
-  else{
-    res.redirect(403, '/error')
-  }
-  res.render('fbsignup', {fconnected: true,check: false,username: username, ftoken:ftoken});
+app.get('/fbsignup', authenticateToken, function(req,res){
+  const ftoken = req.token.fbtoken
+  fconnected=true;
+  res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken});
 })
 
 
-app.post('/fbsignup',function (req,res){
-  username = req.body.username
+app.post('/fbsignup', authenticateToken, function (req,res){
+  /*da implementare
+  - recuperare payload e usarlo al posto di fbinfo
+  - creare utente
+  - return a homepage
+  */
+  payload=req.token.info
+  username=req.body.username
+  console.log(payload)
+  
   
   body1={
     
-    "name": fbinfo.first_name,
-    "surname": fbinfo.last_name,
-    "email": email,
+    "name": payload.info.first_name,
+    "surname": payload.info.last_name,
+    "email": payload.info.email,
     "username": username,
     "picture": {
-      "url": fbinfo.picture.data.url,
-      "height": fbinfo.picture.data.height,
-      "width": fbinfo.picture.data.width
+      "url": payload.info.picture.data.url,
+      "height": payload.info.picture.data.height,
+      "width": payload.info.picture.data.width
     },
     "reviews": [],
     "feedbacks":[]
   
 };
-
+console.log(body1)
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+payload.info.email,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -858,8 +904,19 @@ app.post('/fbsignup',function (req,res){
         console.log(error);
       } else {
         console.log(response.statusCode, body);
-        res.render('homepage', {fconnected: fconnected,username: username,gconnected:gconnected});
-      }
+        jsonobj={
+          "email": payload.info.email,
+          "username": username,
+          "fbtoken": payload.fbtoken
+        }
+        res.cookie('jwt', '', {httpOnly: true, signed:true, maxAge:0})
+        jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
+          res.cookie('fbaccess_token', '', {httpOnly: true, signed:true, maxAge:0})
+          res.cookie('jwt', token, {httpOnly: true, signed:true, maxAge:3153600})              
+          console.log('Questo è il nuovo JWT!!' + token)
+          res.redirect(200, '/homepage', authenticateToken);
+      })
+    }
   });
 
 });
@@ -870,18 +927,14 @@ app.post('/fbsignup',function (req,res){
 
 
 
-app.get('/info', function(req, res){
-  if (req.cookies.fbaccess_token!=undefined){
-    const ftoken = String(req.cookies.fbaccess_token) 
-    fconnected=true;
-    request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
-      var data = JSON.parse(body)
-      res.render('user_info', {data: data});
-    })
-  }
-  else{
-    res.redirect(403, '/error?statusCode=403')
-  }
+app.get('/info', authenticateToken, function(req, res){
+  payload=req.token.info
+  email=payload.info.email
+  request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
+    var data = JSON.parse(body)
+    res.render('user_info', {data: data});
+  })
+  
   
 })
     
@@ -1004,7 +1057,7 @@ app.get('/city_info', function(req,res){
 })
 
 app.get('/app', function(req,res){
-  if(!fconnected){
+  if(req.signedCookies.fbaccess_token==undefined){
     res.redirect(404, '/error?statusCode=404')
     return
   }
@@ -1040,7 +1093,7 @@ let icon_id
 let icon_url
 
 app.get('/details', function(req,res){
-  if(!fconnected){
+  if(req.signedCookies.fbaccess_token==undefined){
     res.redirect(404, '/error?statusCode=404')
   }
   else{
@@ -1070,12 +1123,18 @@ app.get('/details', function(req,res){
     request.get('http://admin:admin@127.0.0.1:5984/reviews/'+xid, function callback(error, response, body){
       if(error) {
         console.log(error);
+        res.status(404).render('/error?statusCode=404')
+        return
       } else {
+        if (info_weather==undefined){
+          //res.redirect(404, '/error?statusCode=404')
+          //return
+        }
         console.log(response.statusCode, body);
         infodb = JSON.parse(body);
         request.get(weather, function callback(error,response, body){
           info_weather=JSON.parse(body);
-          console.log(info_weather);
+          //console.log(info_weather);
           meteo=info_weather.weather[0].description;
           icon_id=info_weather.weather[0].icon;
           //console.log(meteo);
@@ -1103,26 +1162,68 @@ app.get('/details', function(req,res){
 
 //Google Photos API
 
-var numpag;
 app.get('/googlephotosapi', function(req,res){
-  if(!gconnected){
+  feed= req.query.stato;
+  gtoken = req.signedCookies.googleaccess_token;
+  console.log('gtoken : '+ gtoken)
+  if(req.signedCookies.googleaccess_token==undefined){
     res.redirect(404, '/error?statusCode=404')
   }
-  if (req.query.stato == 'feed'){
-    feedbackposting=true;   //ritornerà la foto nel feedback
-  }
-  queryxid = req.query.xid;
-  querynextpg = req.query.nextpg;
-  var url = 'https://photoslibrary.googleapis.com/v1/mediaItems:search'
-	var headers = {'Authorization': 'Bearer '+gtoken};    //setto gli headers passando al sito il token
-  var request = require('request');
-  if (querynextpg!=undefined && querynextpg!=''){   //se ci troviamo alla pagina 2+
-    numpag= numpag+1;
-    request.post({
+  else{
+    request.get({
+      url: 'https://oauth2.googleapis.com/tokeninfo?id_token=' + req.signedCookies.gid_token
+    }, function(error, response, body){
+      if(error){
+        console.log(error)
+      }
+      else{
+        console.log(body)
+        ref=JSON.parse(body)
+        if (ref.azp!=process.env.G_CLIENT_ID){
+          res.status(403).render('expired_token', {google:true})
+          return
+        }
+        if (feed == 'feed'){
+          feedbackposting=true;   //ritornerà la foto nel feedback
+        }
+      queryxid = req.query.xid;
+      querynextpg = req.query.nextpg;
+      var url = 'https://photoslibrary.googleapis.com/v1/mediaItems:search'
+      var headers = {'Authorization': 'Bearer '+ gtoken};    //setto gli headers passando al sito il token
+      var request = require('request');
+      if (querynextpg!=undefined && querynextpg!=''){         //se ci troviamo alla pagina 2+
+        numpag= numpag+1;
+        request.post({
+        headers: headers,
+        url:     url,
+        body:    {
+          "pageToken": querynextpg,
+          "filters": {
+            "mediaTypeFilter": {
+              "mediaTypes": [
+                "PHOTO"
+              ]
+            }
+          }
+        },
+        json:true
+        }, function(error, response, body){
+          console.log(JSON.stringify(body));
+          info = JSON.parse(JSON.stringify(body));
+        if (queryxid!=''){  //la foto si sta aggiungendo alla pagina di un monumento
+          res.render('gphotos.ejs', {info:info, feedbackposting: false,  xid : queryxid, numpag:numpag})
+        }
+        else{ //la foto si sta aggiungendo ad un feedback
+          res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting, xid :'', numpag:numpag})
+        }
+      });
+    }
+    else{       //se la chiamata non è stata effettuata non ci sarà nell'url la req.query.nextpg
+      numpag=1;
+      request.post({
       headers: headers,
-		  url:     url,
+      url:     url,
       body:    {
-        "pageToken": querynextpg,
         "filters": {
           "mediaTypeFilter": {
             "mediaTypes": [
@@ -1132,46 +1233,23 @@ app.get('/googlephotosapi', function(req,res){
         }
       },
       json:true
-		  }, function(error, response, body){
+      }, function(error, response, body){
         console.log(JSON.stringify(body));
         info = JSON.parse(JSON.stringify(body));
-      if (queryxid!=''){  //la foto si sta aggiungendo alla pagina di un monumento
-        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting,  xid : queryxid, numpag:numpag})
-      }
-      else{ //la foto si sta aggiungendo ad un feedback
-        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting, xid :'', numpag:numpag})
-      }
-		});
-  }
-  else{       //se la chiamata non è stata effettuata non ci sarà nell'url la req.query.nextpg
-    numpag=1;
-    request.post({
-		headers: headers,
-		url:     url,
-    body:    {
-      "filters": {
-        "mediaTypeFilter": {
-          "mediaTypes": [
-            "PHOTO"
-          ]
+        if (queryxid!=''){     //la foto si sta aggiungendo alla pagina di un monumento
+          res.render('gphotos.ejs', {info:info, feedbackposting: false,  xid : queryxid, numpag: numpag})
         }
-      }
-    },
-    json:true
-		}, function(error, response, body){
-			console.log(JSON.stringify(body));
-      info = JSON.parse(JSON.stringify(body));
-      if (queryxid!=''){     //la foto si sta aggiungendo alla pagina di un monumento
-        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting,  xid : queryxid, numpag: numpag})
-      }
-      else{                  //la foto si sta aggiungendo ad un feedback
-        res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting, xid :'', numpag: numpag})
-      }
-		});
-  }
-	
-    
+        else{                  //la foto si sta aggiungendo ad un feedback
+          res.render('gphotos.ejs', {info:info, feedbackposting: feedbackposting, xid :'', numpag: numpag})
+        }
+      });
+    }
+    }
+  })
+}
 });
+
+
 
 
 
@@ -1209,10 +1287,12 @@ app.post('/reviews', function(req,res){
 //elimina recensione:
 
 app.post('/elimina', function(req,res){
+  email=req.cookies.email
+  email=email.replace('\u0040', '@');
   const obj = JSON.parse(JSON.stringify(req.body));
   console.log(obj)
   try {
-    deletereviewfromUser(obj.codice)
+    deletereviewfromUser(obj.codice, email)
     deletereviewfromCity(obj.codice, obj.xid)
     res.render('eliminated', {cod: obj.codice})
   } catch (error) {
@@ -1227,7 +1307,7 @@ app.post('/elimina', function(req,res){
 
 function updateUserReviews(req,res){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+    url: 'http://admin:admin@127.0.0.1:5984/users/'+req.cookies.email,
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -1243,7 +1323,7 @@ function updateUserReviews(req,res){
         mese=data.getMonth() +1;
         strdate = data.getDate()+"/"+mese+"/"+data.getFullYear()
 
-  console.log("body funzioneupdateuserreview: %j", req.body)
+  //console.log("body funzioneupdateuserreview: %j", req.body)
         if (req.body.baseUrl!=''){
           imageToBase64(req.body.baseUrl) // Image URL
     .then(
@@ -1253,15 +1333,15 @@ function updateUserReviews(req,res){
             item={
               "codice": codice,
               "Posto": place_name,
-              "xid": xid,
-              "name": username,
+              "xid": req.query.xid,
+              "name": req.cookies.username,
               "text": req.body.rev,
               "date": strdate,
               "photo": encoded
             }
             info.reviews.push(item)
         request({
-          url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+          url: 'http://admin:admin@127.0.0.1:5984/users/'+req.cookies.email,
           method: 'PUT',
           headers: {
             'content-type': 'application/json'
@@ -1291,8 +1371,8 @@ function updateUserReviews(req,res){
           item={
             "codice": codice,
             "Posto": place_name,
-            "xid": xid,
-            "name": username,
+            "xid": req.query.xid,
+            "name": req.cookies.username,
             "text": req.body.rev,
             "date": strdate,
             "photo": '',
@@ -1301,7 +1381,7 @@ function updateUserReviews(req,res){
         
         info.reviews.push(item)
         request({
-          url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
+          url: 'http://admin:admin@127.0.0.1:5984/users/'+req.cookies.email,
           method: 'PUT',
           headers: {
             'content-type': 'application/json'
@@ -1344,7 +1424,7 @@ function newReview(req,res){
               ]
             }
             request({
-              url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
+              url: 'http://admin:admin@127.0.0.1:5984/reviews/'+ req.query.xid,
               method: 'PUT',
               headers: {
                 'content-type': 'application/json'
@@ -1383,7 +1463,7 @@ function newReview(req,res){
 
 
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
+    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+req.query.xid,
     method: 'PUT',
     headers: {
       'content-type': 'application/json'
@@ -1422,7 +1502,7 @@ function updateReview(req,res){
         infodb.reviews.push(newItem);
 
         request({
-          url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
+          url: 'http://admin:admin@127.0.0.1:5984/reviews/'+req.query.xid,
           method: 'PUT',
           headers: {
             'content-type': 'application/json'
@@ -1434,7 +1514,7 @@ function updateReview(req,res){
             console.log(error);
           } else {
             console.log(response.statusCode, body);
-            res.redirect('/details?xid='+xid);
+            res.redirect('/details?xid='+req.query.xid);
           }
         });
 
@@ -1472,13 +1552,13 @@ function updateReview(req,res){
           console.log(error);
       } else {
           console.log(response.statusCode, body);
-          res.redirect('/details?xid='+xid);
+          res.redirect('/details?xid='+req.query.xid);
       }
   });
 }
 }
 
-function deletereviewfromUser(num){
+function deletereviewfromUser(num, email){
   request({
     url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
     method: 'GET',
@@ -1491,11 +1571,12 @@ function deletereviewfromUser(num){
         console.log(error);
       } else {
         var info = JSON.parse(body)
+        if(info.reviews!=undefined){
         for(h = 0; h<info.reviews.length; h++){
           if (info.reviews[h].codice==num){
             info.reviews.splice(h, 1)
           } 
-        }
+        }}
         request({
           url: 'http://admin:admin@127.0.0.1:5984/users/'+email,
           method: 'PUT',
@@ -1516,9 +1597,9 @@ function deletereviewfromUser(num){
 }
 
 
-function deletereviewfromCity(num, cod){
+function deletereviewfromCity(codice, xid){
   request({
-    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+cod,
+    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
     method: 'GET',
     headers: {
       'content-type': 'application/json'
@@ -1530,12 +1611,12 @@ function deletereviewfromCity(num, cod){
       } else {
         var info = JSON.parse(body)
         for(h = 0; h<info.reviews.length; h++){
-          if (info.reviews[h].codice==num){
+          if (info.reviews[h].codice==codice){
             info.reviews.splice(h, 1)
           } 
         }
         request({
-          url: 'http://admin:admin@127.0.0.1:5984/reviews/'+cod,
+          url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
           method: 'PUT',
           headers: {
             'content-type': 'application/json'
@@ -1555,24 +1636,54 @@ function deletereviewfromCity(num, cod){
 
 //feedback
 app.get('/newfeedback', function(req, res){
-  feedbackposting=true;
-  xid='';
-  res.render('feedback', {inviato : false, gconnected: gconnected, photo: ""})
+  if (req.signedCookies.googleaccess_token!=undefined){
+    gconnected = true
+  }
+  else{
+    gconnected = false
+  }
+  if (!gconnected){
+    res.status(403).render('expired_token', {google:true})
+  }
+  else{
+      res.render('feedback', {inviato : false, gconnected: gconnected, photo: ""})
+  }
 })
 
 app.post('/newfeedback', function(req,res){
-  console.log("bodyfeed: %j", req.body);
-  if (req.body.baseUrl.length>=1){
-    res.render('feedback', {inviato: false, gconnected: gconnected, photo: req.body.baseUrl})
+  if (req.signedCookies.googleaccess_token!=undefined){
+    gconnected = true
+  }
+  else{
+    gconnected = false
+  }
+  if (!gconnected){
+    res.status(403).render('expired_token', {google:true})
+  }
+  else{
+    console.log("bodyfeed: %j", req.body);
+    if (req.body.baseUrl.length>=1){
+      res.render('feedback', {inviato: false, gconnected: gconnected, photo: req.body.baseUrl})
   }
   else{
     res.redirect(404, '/error?statusCode=404')
   }
-  
+}
 })
 
 let id
 app.post('/feedback', function(req, res){
+  if (req.signedCookies.googleaccess_token!=undefined){
+    gconnected = true
+  }
+  else{
+    gconnected = false
+  }
+  if (!gconnected){
+    res.status(403).render('expired_token', {google:true})
+  }
+  else{
+  email=req.cookies.email
   date = new Date();
   mese=date.getMonth() +1;
   strdate = date.getDate()+"/"+mese+"/"+date.getFullYear()
@@ -1581,7 +1692,7 @@ app.post('/feedback', function(req, res){
     imageToBase64(req.body.baseUrl) // Image URL
     .then(
       (response) => {
-        console.log(response); // "iVBORw0KGgoAAAANSwCAIA..."
+        //console.log(response); // "iVBORw0KGgoAAAANSwCAIA..."
         var data={
           "id": id,
           "date": date,
@@ -1604,11 +1715,14 @@ app.post('/feedback', function(req, res){
       }
       updateFeedback(data,res)
     }
+  }
 })
 
 
 
 function updateFeedback(data,res){
+  email=req.cookies.email
+  email=email.replace('\u0040', '@');
   request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
 
     var db = JSON.parse(body)
@@ -1644,7 +1758,7 @@ function updateFeedback(data,res){
             const result = channel.assertQueue("feedback")
             channel.sendToQueue("feedback", Buffer.from(JSON.stringify(data)))
             console.log('Feedback sent succefully')
-            console.log(data)
+            //console.log(data)
             
             res.render('feedback', {inviato : true})
             feedbackposting=false;
@@ -1664,7 +1778,12 @@ app.get('/bootstrap.min.css',function (req,res){
 });
 
 app.get('/error',function(req,res){
-  res.render('error', {statusCode: req.query.statusCode, fconnected: fconnected});
+  if (req.signedCookies.fbaccess_token==undefined){
+    res.render('error', {statusCode: req.query.statusCode, fconnected: false});
+  }
+  else{
+    res.render('error', {statusCode: req.query.statusCode, fconnected: true});
+  }
 })
 
 var server = app.listen(8000, function () {
