@@ -15,6 +15,7 @@ const imageToBase64 = require('image-to-base64'); //Usato per codificare le imma
 const WebSocket = require('ws');  
 const swaggerJsDoc= require('swagger-jsdoc'); //usato per la documentazione
 const swaggerUi= require('swagger-ui-express'); //usato per la documentazione
+const { waitForDebugger } = require('inspector');
 require('dotenv').config()
 
 const secretKey = process.env.SECRETKEY;
@@ -33,14 +34,15 @@ app.set('views', __dirname + '/views');
 function authenticateToken(req, res, next) {
   const token = req.signedCookies.jwt
 
-  if (token == null) return res.sendStatus(401)
+  if (token == null) return res.redirect('/error?statusCode=401')
+
 
   jwt.verify(token, secretKey, (err, token) => {
     
 
     if (err) {
       console.log(err)
-      return res.sendStatus(403)
+      return res.redirect('/error?=statusCode=403')
   }
     req.token=token
     next()
@@ -79,6 +81,7 @@ wss.on('connection', function connection(ws) {
 
   ws.on('message', function incoming(message) {
     console.log('Messaggio ricevuto: %s', message);
+    log_on_file(message)
 
     wss.clients.forEach(function each(client) {
       if (client !== ws && client.readyState === WebSocket.OPEN) {
@@ -363,10 +366,35 @@ var codice;
  *          description: restituisce la pagina city_stat.ejs
  *  /app:
  *    get:
- *      tags: [App]
+ *      parameters:
+ *        - in: query
+ *          name: lat
+ *          schema:
+ *            type: float
+ *          required: true
+ *          description: Latitudine
+ *        - in: query
+ *          name: lon
+ *          schema:
+ *            type: float
+ *          required: true
+ *          description: Longitudine
+ *        - in: query
+ *          name: cate
+ *          schema:
+ *            type: string
+ *          required: true
+ *          description: Categoria
+ *        - in: query
+ *          name: rad
+ *          schema:
+ *            type: float
+ *          required: true
+ *          description: Raggio
+ *      tags : [API]
  *      responses:
  *        200:
- *          description: restituisce la pagina list_places.ejs
+ *          description: Restituisce tutti i posti appartenenti alla categoria 'cate' che si trovano nel raggio 'rad' rispetto alla longitudine 'lon' e latitudine 'lat'
  *        404:
  *          description: Error
  *  /openmap:
@@ -519,6 +547,7 @@ var codice;
 
 
 app.get('/', function (req,res){
+  console.log(JSON.stringify(req.signedCookies))
     res.render('index', {check: false, registrazione: false});
 });
 
@@ -637,12 +666,12 @@ app.get('/facebooklogin',function (req,res){
 app.get('/googlelogin', function(req, res){
   gconnecting=true;
   if (req.query.length>0){
-    res.cookie('xid', req.query.xid, {maxAge:315360000000, signed: true, httpOnly: true})
+    res.cookie('xid', req.query.xid, {maxAge:315360000000, signed: true, secure:true, httpOnly: true})
     xid = req.query.xid;  //se si entra dalla pagina delle review, si ritornerà poi a quella pagina, quindi salvo xid
-    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
+    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/googlecallback&client_id="+process.env.G_CLIENT_ID);
   }
   else{ 
-    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/homepage&client_id="+process.env.G_CLIENT_ID);
+    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/googlecallback&client_id="+process.env.G_CLIENT_ID);
   }
 })
 
@@ -651,19 +680,18 @@ app.get('/signup', function(req, res){
 });
 
 app.get('/home', authenticateToken, function(req,res){
-  payload = req.token.info
-  
-  if(payload.info){
-    token = req.token.info.fbtoken
     username = req.token.info.info.username
+  
+  if (req.signedCookies.googleaccess_token==undefined){
+    gconnected=false
   }
   else{
-    token = req.token.fbtoken
-    username = req.token.info.username
+    gconnected=true
   }
 
+
   
-  res.render('homepage', {fconnected:true, gconnected:false, username:username})
+  res.render('homepage', {fconnected:true, gconnected:gconnected, username:username})
 })
 
 app.get('/homepage', function (req,res){
@@ -682,7 +710,7 @@ app.get('/homepage', function (req,res){
 })
 
 //acquisisci google token
-app.get('/gtoken', function(req, res){
+app.get('/gtoken', authenticateToken, function(req, res){
   var xid;
   var feedbackposting;
   code = decodeURIComponent(req.query.code)
@@ -702,7 +730,7 @@ app.get('/gtoken', function(req, res){
     code: code,
     client_id: process.env.G_CLIENT_ID,
     client_secret: process.env.G_CLIENT_SECRET,
-    redirect_uri: "https://localhost:8000/homepage",
+    redirect_uri: "https://localhost:8000/googlecallback",
     grant_type: 'authorization_code'
   }
   request.post({url:'https://www.googleapis.com/oauth2/v4/token', form: formData}, function optionalCallback(err, httpResponse, body) {
@@ -719,12 +747,9 @@ app.get('/gtoken', function(req, res){
       gtoken = info.id_token; 
       gconnected = true;
       console.log("Got the token "+ info.access_token);
-      request.get()
-      res.cookie('gid_token', gtoken, {maxAge:315360000000, signed: true, httpOnly: true})
-      res.cookie('googleaccess_token', googletoken, {maxAge:315360000000, signed: true, httpOnly: true})
-      
-      res.render('continue.ejs', {gtoken : googletoken, gconnected:true, gidtoken: gtoken, feedbackposting: feedbackposting, xid: xid}) 
-           
+      res.cookie('gid_token', gtoken, {maxAge:315360000000, secure:true, signed: true, httpOnly: true})
+      res.cookie('googleaccess_token', googletoken, {maxAge:315360000000, secure:true, signed: true, httpOnly: true})
+      res.redirect('/home')
     }
   })
 })
@@ -772,9 +797,11 @@ app.get('/mytoken', function(req,res){
 
 
 app.get('/fb_pre_access',function (req,res){
+  ftoken='';
   if (req.signedCookies.fbaccess_token!=undefined){
-  const ftoken = String(req.signedCookies.fbaccess_token) 
+    ftoken = String(req.signedCookies.fbaccess_token) 
   }
+  else res.send('ERRORE')
   var url = 'https://graph.facebook.com/me?fields=id,first_name,last_name,picture,email&access_token='+ftoken
   var headers = {'Authorization': 'Bearer '+ftoken};
   var request = require('request');
@@ -812,26 +839,32 @@ app.get('/fb_pre_access',function (req,res){
                 "info": fbinfo,
                 "fbtoken": ftoken
               }
-              accessToken=jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
-                res.cookie('fbaccess_token', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
-                res.cookie('jwt', token, {httpOnly: true,secure: true, signed:true, maxAge:3153600})              
-                console.log('Questo è il JWT!!' + token)
-                res.redirect('/fbsignup') //Utente non esiste quindi lo faccio registrare
+              console.log("QUESTA QUA è LA FUNZIONE CHE SETTA IL COOKIE SE L'UTENTE NON ESISTE")
+              jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
+                res.cookie('jwt', token, {httpOnly: true,secure: true, signed:true, maxAge:3153600});           
+                console.log('Questo è il JWT!!' + token);
+                res.redirect('/fbsignup'); //Utente non esiste quindi lo faccio registrare
               })
               
               
             }
             else{
               jsonobj= {
-                "info": info,
+                "info":{ 
+                "email": info.email,
+                "username": info.username,
+                
+                },
                 "fbtoken": ftoken
               }
-              //da fare: fare in modo che se il jwt esiste=>entra automaticamente
+
+              console.log("QUESTA QUA è LA FUNZIONE CHE SETTA IL COOKIE SE L'UTENTE ESISTE")
               jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
-                res.cookie('fbaccess_token', '', {httpOnly: true, signed:true, maxAge:0})
-                res.cookie('jwt', token, {httpOnly: true, signed:true, maxAge:3153600})              
-                console.log('Questo è il JWT!!' + token)
-                res.redirect( 200, '/home')  //Utente esiste, può accedere
+                if (err) console.log(err);
+                res.cookie('fbaccess_token', '', {httpOnly: true,secure: true, signed:true, maxAge:0});
+                res.cookie('jwt', token, {httpOnly: true, secure:true, signed:true, maxAge:3153600});              
+                console.log('Questo è il JWT!!' + token);
+                res.redirect( 200, '/home');  //Utente esiste, può accedere
               })
             }
           }
@@ -841,7 +874,7 @@ app.get('/fb_pre_access',function (req,res){
 
 
 app.get('/fbsignup', authenticateToken, function(req,res){
-  const ftoken = req.token.fbtoken
+  const ftoken = req.token.info.fbtoken
   fconnected=true;
   res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken});
 })
@@ -892,8 +925,10 @@ console.log(body1)
           "username": username,
           "fbtoken": payload.fbtoken
         }
-        res.cookie('jwt', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
-        jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
+        
+        
+          res.cookie('jwt', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
+          jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
           res.cookie('fbaccess_token', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
           res.cookie('jwt', token, {httpOnly: true,secure: true, signed:true, maxAge:3153600})              
           console.log('Questo è il nuovo JWT!!' + token)
@@ -904,7 +939,14 @@ console.log(body1)
 
 });
 
-
+app.get('/googlecallback', function (req,res){
+  if (req.query.code!=undefined){  
+      res.redirect('gtoken?code='+req.query.code)
+  }
+  else{
+    res.status(403).redirect(403, '/error?statusCode=403')
+  }    
+})
 
 
 
@@ -926,18 +968,11 @@ app.get('/info', authenticateToken, function(req, res){
 })
     
 //API Open Trip Map Places
-let lon;
-let lat;
-let city;
-let rad;
-let cate;
-
 app.post('/openmap', authenticateToken, function(req,res){   
   city = req.body.city;
   rad = parseFloat(req.body.rad)*1000;
   cate = req.body.cat;
   checkCity(city)                       //aggiungo (aggiorno) la città cercata nel db 'cities'
-  log_on_file("E' stata cercata la città: "+city)
   var options = {
     url: 'https://api.opentripmap.com/0.1/en/places/geoname?format=geojson&apikey='+process.env.OpenMap_KEY+'&name='+city
   }
@@ -948,8 +983,8 @@ app.post('/openmap', authenticateToken, function(req,res){
     
     lat = parseFloat(info.lat);
     lon = parseFloat(info.lon);
-    
-    res.redirect('/app');
+    console.log('/app?lat='+lat+'&lon='+lon+'&cate='+cate+'&rad='+rad);
+    res.redirect('/app?lat='+lat+'&lon='+lon+'&cate='+cate+'&rad='+rad+'&city='+city);
   }); 
 });
 
@@ -1043,8 +1078,13 @@ app.get('/city_info', authenticateToken, function(req,res){
   })
 })
 
-app.get('/app', authenticateToken, function(req,res){
-  
+app.get('/app', authenticateToken, function(req,res){ 
+  rad = req.query.rad;
+  lat = req.query.lat;
+  lon = req.query.lon;
+  cate = req.query.cate;
+  city = req.query.city;
+
   var options ={
     url: 'https://api.opentripmap.com/0.1/en/places/radius?format=geojson&apikey='+process.env.OpenMap_KEY+'&radius='+rad+'&lon='+lon+'&lat='+lat+'&kinds='+cate+'&limit='+100
   }
@@ -1066,17 +1106,13 @@ app.get('/app', authenticateToken, function(req,res){
 });
 
 
-let info
-let place_name
-let infodb
-let info_weather
-let meteo
-let icon_id
-let icon_url
-
 app.get('/details', authenticateToken, function(req,res){
-  
-    console.log(req.query)
+  if (req.signedCookies.googleaccess_token==undefined){
+    gconnected=false
+  }
+  else{
+    gconnected=true
+  }
   if (Object.keys(req.query).length > 1){
 
     var photo =req.query.baseUrl;
@@ -1086,10 +1122,6 @@ app.get('/details', authenticateToken, function(req,res){
   }
 
   xid = req.query.xid;
-
-  var weather = {
-    url: 'https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+process.env.OpenWeatherMap_KEY+'&lang=it'
-  }
   
   var options = {
     url: 'https://api.opentripmap.com/0.1/en/places/xid/'+xid+'?apikey='+process.env.OpenMap_KEY
@@ -1098,6 +1130,8 @@ app.get('/details', authenticateToken, function(req,res){
   request.get(options,function callback(error, response, body){
     info = JSON.parse(body);
     place_name=info.name
+    lat = info.point.lat
+    lon= info.point.lat
     console.log('\r\n'+place_name+'\r\n')
     request.get('http://admin:admin@127.0.0.1:5984/reviews/'+xid, function callback(error, response, body){
       if(error) {
@@ -1105,26 +1139,22 @@ app.get('/details', authenticateToken, function(req,res){
         res.status(404).render('/error?statusCode=404')
         return
       } else {
-        if (info_weather==undefined){
-          //res.redirect(404, '/error?statusCode=404')
-          //return
-        }
         console.log(response.statusCode, body);
         infodb = JSON.parse(body);
+        var weather = {
+          url: 'https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+process.env.OpenWeatherMap_KEY+'&lang=it'
+        }
         request.get(weather, function callback(error,response, body){
           info_weather=JSON.parse(body);
-          //console.log(info_weather);
           meteo=info_weather.weather[0].description;
           icon_id=info_weather.weather[0].icon;
-          //console.log(meteo);
-          //console.log(icon_id);
           icon_url="http://openweathermap.org/img/wn/"+icon_id+"@2x.png"
           if(infodb.error){
-            res.render('details', {gconnected : false, fconnected: true,info: info, xid: xid, lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, reviews: "", photo:photo, info_weather:meteo, icon_id:icon_id, icon_url:icon_url});
+            res.render('details', {gconnected : gconnected, fconnected: true,info: info, xid: xid, lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, reviews: "", photo:photo, info_weather:meteo, icon_id:icon_id, icon_url:icon_url});
           } 
           else{
             //Ci sono recensioni
-            res.render('details', {gconnected : false, fconnected:true,info: info, xid: xid, reviews: infodb.reviews,n: infodb.reviews.length,lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, photo: photo, info_weather:meteo, icon_id:icon_id, icon_url:icon_url});
+            res.render('details', {gconnected : gconnected, fconnected:true,info: info, xid: xid, reviews: infodb.reviews,n: infodb.reviews.length,lat: info.point.lat , lon: info.point.lon, api: process.env.HERE_API, photo: photo, info_weather:meteo, icon_id:icon_id, icon_url:icon_url});
           }
         })
         
@@ -1336,7 +1366,7 @@ function updateUserReviews(req,res, codice){
                 console.log(error);
             } else {
                 console.log(response.statusCode, body);
-      
+                res.redirect('/details?xid='+req.body.xid);
             }
         });
       }
@@ -1376,7 +1406,7 @@ function updateUserReviews(req,res, codice){
                 console.log(error);
             } else {
                 console.log(response.statusCode, body);
-      
+                res.redirect('/details?xid='+req.body.xid);
             }
         });
       }
@@ -1421,7 +1451,6 @@ function newReview(req,res, codice){
                     console.log(error);
                 } else {
                     console.log(response.statusCode, body);
-                    res.redirect('/details?xid='+xid);
                 }
             });
         }
@@ -1437,7 +1466,7 @@ function newReview(req,res, codice){
       "reviews": [
         {
           "codice": codice,
-          "name": req.tokusername,
+          "name": req.token.info.info.username,
           "text": req.body.rev,
           "date": strdate,
           "photo": ''
@@ -1467,7 +1496,7 @@ function newReview(req,res, codice){
 }
 
 function updateReview(req,res,codice){
-  payload=req.token.info
+  payload=req.token
   xid = req.body.xid;
   console.log("XID_ : "+xid)
   data = new Date();
@@ -1502,7 +1531,6 @@ function updateReview(req,res,codice){
             console.log(error);
           } else {
             console.log(response.statusCode, body);
-            res.redirect('/details?xid='+xid);
           }
         });
 
@@ -1540,7 +1568,6 @@ function updateReview(req,res,codice){
           console.log(error);
       } else {
           console.log(response.statusCode, body);
-          res.redirect('/details?xid='+xid);
       }
   });
 }
@@ -1630,12 +1657,8 @@ app.get('/newfeedback', authenticateToken, function(req, res){
   else{
     gconnected = false
   }
-  if (!gconnected){
-    res.status(403).render('expired_token', {google:true})
-  }
-  else{
-      res.render('feedback', {inviato : false, gconnected: false, photo: ""})
-  }
+  res.render('feedback', {inviato : false, gconnected: gconnected, photo: ""})
+  
 })
 
 app.post('/newfeedback', authenticateToken, function(req,res){
@@ -1651,7 +1674,7 @@ app.post('/newfeedback', authenticateToken, function(req,res){
   else{
     console.log("bodyfeed: %j", req.body);
     if (req.body.baseUrl.length>=1){
-      res.render('feedback', {inviato: false, gconnected: false, photo: req.body.baseUrl})
+      res.render('feedback', {inviato: false, gconnected: gconnected, photo: req.body.baseUrl})
   }
   else{
     res.redirect(404, '/error?statusCode=404')
@@ -1659,7 +1682,6 @@ app.post('/newfeedback', authenticateToken, function(req,res){
 }
 })
 
-let id
 app.post('/feedback', authenticateToken, function(req, res){
   if (req.signedCookies.googleaccess_token!=undefined){
     gconnected = true
@@ -1667,11 +1689,8 @@ app.post('/feedback', authenticateToken, function(req, res){
   else{
     gconnected = false
   }
-  if (!gconnected){
-    res.status(403).render('expired_token', {google:true})
-  }
-  else{
-  email=req.token.info.email
+  username=req.token.info.info.username
+  email=req.token.info.info.email
   date = new Date();
   mese=date.getMonth() +1;
   strdate = date.getDate()+"/"+mese+"/"+date.getFullYear()
@@ -1690,6 +1709,8 @@ app.post('/feedback', authenticateToken, function(req, res){
           "photo": response
         }
         updateFeedback(data,res)
+      }).catch(function(error){
+        console.log(error);
       })
     }
     else{
@@ -1703,14 +1724,13 @@ app.post('/feedback', authenticateToken, function(req, res){
       }
       updateFeedback(data,res)
     }
-  }
 })
 
 
 
 function updateFeedback(data,res){
-  email=req.token.info.email
-  email=email.replace('\u0040', '@');
+  email=
+  email=data.email.replace('\u0040', '@');
   request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
 
     var db = JSON.parse(body)
@@ -1762,8 +1782,7 @@ function updateFeedback(data,res){
 }
 
 function log_on_file(data){
-  date = new Date();
-  fs.appendFile('logs.txt','\r\n'+date+': '+data, ()=>{
+  fs.appendFile('logs.txt','\r\n'+data, ()=>{
     console.log('scritto su file')
   })
 
