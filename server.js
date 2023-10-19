@@ -31,7 +31,7 @@ app.set('views', __dirname + '/views');
 
 
 //Funzione di middleware per l'autenticazione
-
+//According to RFC, it's best to rotate or invalidate refresh token
 function authenticateToken(req, res, next) {
   const token = req.signedCookies.jwt
 
@@ -76,7 +76,6 @@ app.get('/refreshtoken', function(req, res){
   })
 })
 
-
 //Extended https://swagger.io/specification/
 const swaggerOptions = {
   definition: {
@@ -119,7 +118,8 @@ wss.on('connection', function connection(ws) {
   });
 });
 
-var codice;
+
+//************************INIZIO DOCUMENTAZIONE************************//
 
 /**
  * @swagger
@@ -129,22 +129,26 @@ var codice;
  *      type: oauth2
  *      flows:
  *        authorizationCode:
- *          authorizationUrl: http://localhost:8000/googlelogin
- *          tokenUrl: http://localhost:8000/gtoken
+ *          authorizationUrl: https://localhost:8000/googlelogin
+ *          tokenUrl: https://localhost:8000/gtoken
  *          scopes: 
  *            photoslibrary.readonly: Grant read-only access to all your photos
  *    facebookOAuth:
  *      type: oauth2
  *      flows:
  *        authorizationCode:
- *          authorizationUrl: http://localhost:8000/facebooklogin
- *          tokenUrl: http://localhost:8000/ftoken
+ *          authorizationUrl: https://localhost:8000/facebooklogin
+ *          tokenUrl: https://localhost:8000/ftoken
  *          scopes: {}
  *    fbcookieAuth:         # arbitrary name for the security scheme; will be used in the "security" key later
  *      type: apiKey
  *      in: cookie
  *      name: fbaccess_token 
- *    gcookieAuth:         # arbitrary name for the security scheme; will be used in the "security" key later
+ *    GoogleAccessToken:         # arbitrary name for the security scheme; will be used in the "security" key later
+ *      type: apiKey
+ *      in: cookie
+ *      name: googleaccess_token
+ *    GoogleIdToken:
  *      type: apiKey
  *      in: cookie
  *      name: googleaccess_token
@@ -253,7 +257,14 @@ var codice;
  *          - text: Non mi piace per niente
  *          - read: true
  *          - photo: 
- *        
+ *    Ricerca: 
+ *      properties:
+ *        Città:
+ *          type: string
+ *        Categoria:
+ *          type: string
+ *        Raggio:
+ *          type: float    
  *   
  *  
  */
@@ -281,34 +292,18 @@ var codice;
  *              example: Accedi con Facebook
  *      responses:
  *        200:
- *          description: ok
+ *          description: >
+ *            Successfully authenticated.
+ *            The session ID is returned in a cookie named `JSESSIONID`. You need to include this cookie in subsequent requests.
  *          headers: 
  *          Set-Cookie:
  *            schema: 
  *              type: string
- *              example: JSESSIONID=abcde12345; Path=/; HttpOnly
+ *              example: jwt=abcde12345; Path=/; HttpOnly
  * 
  *  /homepage:
  *    get:
  *      tags: [Callback]
- *      parameters:
- *        - in: query
- *          name: code
- *          schema:
- *            type: string
- *            description: Authentication Code ricevuto da Google/Fb
- *      security:
- *        - fbcookieAuth: []
- *      responses:
- *        200: 
- *          description: HTML HOMEPAGE
- *        403:
- *          description: Error 403. User not authenticated
- * 
- * 
- *  /home:
- *    get:
- *      tags: [Home]
  *      parameters:
  *        - in: query
  *          name: code
@@ -322,7 +317,6 @@ var codice;
  *          description: HTML HOMEPAGE
  *        403:
  *          description: Error 403. User not authenticated
- * 
  *  /gtoken:
  *    get:
  *      tags: [Google OAuth]
@@ -336,6 +330,11 @@ var codice;
  *      responses:
  *        200:
  *          description: HTML token page
+ *          headers: 
+ *            Set-Cookie:
+ *              schema: 
+ *                type: string
+ *                example: googleaccess_token=abcde12345, gid_token; Path=/; HttpOnly
  *        404:
  *          description: Invalid Grant, malformed auth code.
  * 
@@ -362,9 +361,23 @@ var codice;
  *        200:
  *          description: reindirizza alla homepage
  * 
+ * 
+ *  /home:
+ *    get:
+ *      tags: [Home]
+ *      security:
+ *        - JWT: []
+ *      responses:
+ *        200: 
+ *          description: HTML HOMEPAGE
+ *        403:
+ *          description: Error 403. User not authenticated
+ * 
  *  /info:
  *    get:
- *      tags: [User]
+ *      tags: [Home]
+ *      security:
+ *        - JWT: []
  *      responses:
  *        200:
  *          description: HTML user_info
@@ -378,16 +391,9 @@ var codice;
  *        200:
  *          description: restituisce la pagina signup.ejs
  * 
- *  /fsignup:
- *    get:
- *      tags: [Facebook OAuth]
- *      responses:
- *        200:
- *          description: reindirizza alla homepage
- * 
  *  /city_info:
  *    get:
- *      tags: [City info]
+ *      tags: [Home]
  *      responses:
  *        200:
  *          description: restituisce la pagina city_stat.ejs
@@ -418,7 +424,9 @@ var codice;
  *            type: float
  *          required: true
  *          description: Raggio
- *      tags : [API]
+ *      security:
+ *        - JWT: []
+ *      tags : [APIs]
  *      responses:
  *        200:
  *          description: Restituisce tutti i posti appartenenti alla categoria 'cate' che si trovano nel raggio 'rad' rispetto alla longitudine 'lon' e latitudine 'lat'
@@ -426,24 +434,24 @@ var codice;
  *          description: Error
  *  /openmap:
  *    post:
- *      tags: [Open Trip Map]
+ *      tags: [APIs]
  *      requestBody:
  *        required: true
  *        content:
  *          application/x-www-form-urlencoded:
- *            schema:
- *              type: object
- *              properties:
- *                sub:       
- *                  type: string
- *              example: 
+ *          schema:
+ *            $ref: '#/components/schemas/Ricerca' 
+ *      security:
+ *        - JWT: []
  *      responses:
  *        200:
  *          description:
  *    
  *  /details:
  *    get:
- *      tags: [Details]
+ *      security:
+ *        - JWT: []
+ *      tags: [APIs]
  *      responses:
  *        200:
  *          description: restituisce la pagina details
@@ -452,8 +460,9 @@ var codice;
  * 
  *  /googlephotosapi:
  *    get:
- *      tags: [Google photo]
+ *      tags: [APIs]
  *      security:
+ *        - JWT: []
  *        - gcookieAuth: []
  *        - gidcookieAuth: []
  *      responses:
@@ -464,14 +473,14 @@ var codice;
  * 
  *  /logout:
  *    get:
- *      tags: [Logout]
+ *      tags: [Home]
  *      responses:
  *        200:
  *          description: restituisce la pagina logout.ejs
  *        404: 
  *          description: Error
  *    post:
- *      tags: [Logout]
+ *      tags: [Home]
  *      requestBody:
  *        required: true
  *        content:
@@ -488,17 +497,28 @@ var codice;
  * 
  *  /reviews:
  *    post:
+ *      summary: Posta una recensione
  *      tags: [Reviews]
+ *      security:
+ *        - JWT: []
  *      requestBody:
  *        required: true
  *        content:
  *          application/x-www-form-urlencoded:
  *            schema:
- *              type: object
  *              properties:
- *                sub:       
- *                  type: 
- *              example: 
+ *                xid:
+ *                  type: string
+ *                  description: Codice luogo
+ *                name:
+ *                  type: string
+ *                  description: Username
+ *                text:   
+ *                  type: string
+ *                photo:
+ *                  type: string
+ *                  format: byte
+ *            
  *      responses:
  *        200:
  *          description: permette di creare o aggiornare una recensione
@@ -573,6 +593,9 @@ var codice;
  * 
  *  
  */
+
+
+//*****************************FINE DOCUMENTAZIONE*******************************/
 
 
 app.get('/', function (req,res){
@@ -898,11 +921,11 @@ app.get('/fb_pre_access',function (req,res){
               if(req.signedCookies.refresh==null){
               jwt.sign({info:jsonobj}, refresh_secretKey, (err, refreshtoken)=>{
                 res.cookie('refresh', refreshtoken, {httpOnly: true, secure: true, signed:true})
-                res.redirect( 200, '/home');  //Utente esiste, può accedere
+                res.redirect('/home').statusCode(200);  //Utente esiste, può accedere
               })
             }
             else{
-              res.redirect( 200, '/home');
+              res.redirect('/home').statusCode(200);
             }
             }
           }
@@ -913,8 +936,9 @@ app.get('/fb_pre_access',function (req,res){
 
 app.get('/fbsignup', authenticateToken, function(req,res){
   const ftoken = req.token.info.fbtoken
+  const fbinfo= req.token.info.info
   fconnected=true;
-  res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken});
+  res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken, data: fbinfo});
 })
 
 
@@ -977,7 +1001,7 @@ console.log(body1)
           })     //refresh_token      
           jwt.sign({info:jsonobj}, refresh_secretKey, (err, refreshtoken)=>{
             res.cookie('refresh', refreshtoken, {httpOnly: true, secure: true, signed:true})
-            res.redirect( 200, '/home');  //Utente esiste, può accedere
+            res.redirect('/home').statusCode(200);  //Utente esiste, può accedere
           
       })
     }
@@ -1313,11 +1337,9 @@ app.get('/logout', authenticateToken, function(req,res){
 })
 
 app.post('/logout', function(req,res){
-  fconnected=false;
-  gconnected=false;
-  lconnected=false;
-  ftoken='';
-  gtoken='';
+  res.cookie('gid_token', '', {maxAge:0, secure:true, signed: true, httpOnly: true})
+  res.cookie('googleaccess_token', '', {maxAge:0, secure:true, signed: true, httpOnly: true})
+  res.cookie('jwt', '', {httpOnly: true,secure: true, signed:true, maxAge:0}) 
   res.redirect('/');
 })
 
@@ -1334,8 +1356,8 @@ app.post('/reviews', authenticateToken, function(req,res){
       console.log(response.statusCode, body);
       infodb = JSON.parse(body);
         if(infodb.error){
-          console.log('la f è in err')
-          console.log(req.body)
+          //console.log('la f è in err')
+          //console.log(req.body)
           newReview(req, res, codice);  //Se non esiste il documento nel db lo creo
         } 
         else{
@@ -1490,7 +1512,8 @@ function newReview(req,res, codice){
                 if(error) {
                     console.log(error);
                 } else {
-                    console.log(response.statusCode, body);
+                    //console.log(response.statusCode, body);
+                    res.redirect('/details?xid='+xid);
                 }
             });
         }
@@ -1528,12 +1551,12 @@ function newReview(req,res, codice){
       if(error) {
           console.log(error);
       } else {
-          console.log(response.statusCode, body);
-          
+          //console.log(response.statusCode, body);
+          res.redirect('/details?xid='+xid);
       }
     });
   }
-  res.redirect('/details?xid='+xid);
+  
 }
 
 function updateReview(req,res,codice){
@@ -1571,7 +1594,8 @@ function updateReview(req,res,codice){
           if(error) {
             console.log(error);
           } else {
-            console.log(response.statusCode, body);
+            //console.log(response.statusCode, body);
+            res.redirect('/details?xid='+xid);
           }
         });
 
@@ -1594,25 +1618,26 @@ function updateReview(req,res,codice){
       
     
   
-    infodb.reviews.push(newItem);
+  infodb.reviews.push(newItem);
 
-    request({
-      url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
-      method: 'PUT',
-      headers: {
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify(infodb)
-      
-    }, function(error, response, body){
-        if(error) {
-            console.log(error);
-        } else {
-            console.log(response.statusCode, body);
-        }
-    });
-  }
-  res.redirect('/details?xid='+xid);
+  request({
+    url: 'http://admin:admin@127.0.0.1:5984/reviews/'+xid,
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify(infodb)
+    
+  }, function(error, response, body){
+      if(error) {
+          console.log(error);
+      } else {
+          //console.log(response.statusCode, body);
+          res.redirect('/details?xid='+xid);
+      }
+  });
+}
+
 }
 
 function deletereviewfromUser(num, email){
@@ -1714,7 +1739,7 @@ app.post('/newfeedback', authenticateToken, function(req,res){
     res.status(403).render('expired_token', {google:true})
   }
   else{
-    console.log("bodyfeed: %j", req.body);
+    //console.log("bodyfeed: %j", req.body);
     if (req.body.baseUrl.length>=1){
       res.render('feedback', {inviato: false, gconnected: gconnected, photo: req.body.baseUrl})
   }
@@ -1771,7 +1796,6 @@ app.post('/feedback', authenticateToken, function(req, res){
 
 
 function updateFeedback(data,res){
-  email=
   email=data.email.replace('\u0040', '@');
   request.get('http://admin:admin@127.0.0.1:5984/users/'+email, function callback(error, response, body){
 
@@ -1797,29 +1821,42 @@ function updateFeedback(data,res){
       if(error) {
         console.log(error);
       } else {
-        console.log(response.statusCode, body);
-        connect();
-        async function connect() {
+        //console.log(response.statusCode, body);
+         
+        amqp.connect('amqp://localhost:5672', function(error0, connection) {
+          if (error0) {
+            //throw error0; 
+            console.log("Sistema di feedback non funziona " + error0.toString());
+            return;
+         }
 
-          try {
-            
-            const connection = await amqp.connect("amqp://localhost:5672")
-            const channel = await connection.createChannel();
-            const result = channel.assertQueue("feedback")
-            channel.sendToQueue("feedback", Buffer.from(JSON.stringify(data)))
-            console.log('Feedback sent succefully')
-            //console.log(data)
-            
-            res.render('feedback', {inviato : true})
-            feedbackposting=false;
-          }
-          catch(error){
-            console.error(error);
-          }
-        }
-      }
+          connection.createChannel(function(error1, channel) {
+            if (error1) {
+                console.log("Sistema di feedback non funziona " + error0.toString());
+                return;
+            }
+
+            var queue = 'feedback';
+            var msg = JSON.stringify(data)
+
+            channel.assertQueue(queue);
+
+            console.log("-- INVIANDO MESSAGGIO '%s' ALLA CODA %s --", msg, queue);
+
+            channel.sendToQueue(queue, Buffer.from(msg));
+
+            console.log("-- HO INVIATO IL MESSAGGIO --");
+          });
+
+
+        setTimeout(function() { //importante mettere il timeout perchè altrimenti la connessione si chiude
+            connection.close(); // prima di riuscire a passare il msg
+        }, 500);
+        res.render('feedback', {inviato : true})
+        feedbackposting=false;
     });
-
+  }
+})
   })
 }
 
