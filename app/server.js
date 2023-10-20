@@ -18,9 +18,15 @@ const swaggerUi= require('swagger-ui-express'); //usato per la documentazione
 const { waitForDebugger } = require('inspector');
 require('dotenv').config()
 
+//********************************************************FINE DIPENDENZE ************************************************************************/
+
+var appRoot=path.resolve(__dirname)
+
 const secretKey = process.env.SECRETKEY;
 const refresh_secretKey = process.env.REFRESH_SECRET;
 
+
+//utilizzo di chiave di crittografia per codificare e decodificare i cookie
 app.use(cookieParser(secretKey));
 app.use(cookieEncrypter(secretKey));
 
@@ -30,53 +36,10 @@ app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
 
-//Funzione di middleware per l'autenticazione
-//According to RFC, it's best to rotate or invalidate refresh token
-function authenticateToken(req, res, next) {
-  const token = req.signedCookies.jwt
 
-  if (token == null){
-    if(req.signedCookies.refresh!=null) {
-      return res.redirect('/refreshtoken')
-    }
-    else{
-      return res.redirect('/error?statusCode=401')
-    } 
-  }
-  
+//****************************************************************************************************************************************/
 
-  jwt.verify(token, secretKey, (err, token) => {
-    
-
-    if (err) {
-      console.log(err)
-      return res.redirect('/refreshtoken')
-    }
-    req.token=token
-    next()
-  })
-}
-
-app.get('/refreshtoken', function(req, res){
-  const refresher = req.signedCookies.refresh;
-
-  if (refresher == null) return res.redirect('/error?statusCode=401')
-
-  jwt.verify(refresher, refresh_secretKey, (err, token)=>{
-    if (err){
-      return res.redirect('/error?statusCode=403')
-    }
-    else{
-      jwt.sign({info:token.info}, secretKey, { expiresIn: '30m' }, (err, newtoken)=>{
-        res.cookie('jwt', newtoken, {httpOnly: true,secure: true, signed:true, maxAge:1800000});           
-        //console.log('Questo è il JWT REFRESHATO!!' + newtoken);
-        res.render('mytoken.ejs', {ntoken: newtoken})
-    })
-    }
-  })
-})
-
-
+//*****************************************************SWAGGER API-DOCS ***************************************************/
 
 //Extended https://swagger.io/specification/
 const swaggerOptions = {
@@ -101,13 +64,18 @@ const swaggerOptions = {
 }
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs)); //path per la documentazione
 
+
+//********************************************************************************************************************************/
+
+
+//********************************************************WEB SOCKET SERVER********************************************************************/
 
 const wss = new WebSocket.Server({ port:8080 });
 
 wss.on('connection', function connection(ws) {
-  console.log('Web Socket connection activated');
+  console.log('Connected to WebSocket Client');
   ws.send('Welcome New Client!');
 
   ws.on('message', function incoming(message) {
@@ -123,8 +91,14 @@ wss.on('connection', function connection(ws) {
   });
 });
 
-//************************INIZIO DOCUMENTAZIONE************************//
 
+
+//*************************************************Fine WS**********************************************************************/
+
+//*******************************************INIZIO DOCUMENTAZIONE************************************************************//
+
+
+//*******************************************Tag, Schemas, Security Schemas [SWAGGER API-DOCS] ************************************/
 
 /**
  * @swagger
@@ -344,9 +318,41 @@ wss.on('connection', function connection(ws) {
  *        - JWT: []
  *      responses:
  *        200: 
- *          description: HTML HOMEPAGE
+ *          description: Restituisce homepage.ejs
  *        403:
- *          description: Error 403. User not authenticated
+ *          description: Error page 401. User not authenticated.
+ * 
+ *  /fbsignup:
+ *    get:
+ *      summary: Pagina di signup
+ *      tags: [Home]
+ *      security:
+ *        - JWT: []
+ *      responses:
+ *        200:
+ *          description: restituisce la pagina signup.ejs
+ *        404: 
+ *          description: Error
+ *    post:
+ *      summary: Esegui il signup
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/x-www-form-urlencoded:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                city:
+ *                  type: string
+ *                  description: Username
+ *      security:
+ *        - JWT: []
+ *      tags: [Home]
+ *      responses:
+ *        200:
+ *          description: Utente registrato correttamente. Redirect a Homepage
+ *        409:
+ *          description: Nome utente esiste già
  * 
  *  /info:
  *    get:
@@ -356,9 +362,10 @@ wss.on('connection', function connection(ws) {
  *        - JWT: []
  *      responses:
  *        200:
- *          description: HTML user_info
- *        403:
- *          description: HTML error page. user not authenticated
+ *          description: Rstituisce la pagine user_info.ejs
+ *        401:
+ *          description: Ejs error page 401. User not authenticated
+ * 
  * 
  *  /city_info:
  *    get:
@@ -429,7 +436,9 @@ wss.on('connection', function connection(ws) {
  *        - JWT: []
  *      responses:
  *        200:
- *          description:
+ *          description: Ricerca eseguita correttamente
+ *        401: 
+ *          description: Non autorizzato
  *    
  *  /details:
  *    get:
@@ -476,12 +485,23 @@ wss.on('connection', function connection(ws) {
  *      security:
  *        - JWT: []
  *        - gcookieAuth: []
- *        - gidcookieAuth: []
  *      responses:
  *        200:
  *          description: Restituisce la pagina gphotos.ejs con la lista delle foto dell'utente
- *        404:
- *          description: Error
+ *        401:
+ *          description: Non autorizzato
+ * 
+ *  /delete_account:
+ *    get:
+ *      summary: Elimina il tuo account
+ *      tags: [User]
+ *      security:
+ *        - JWT: []
+ *      responses:
+ *        200:
+ *          description: EJS account_deleted 
+ *        403:
+ *          description: EJS error page. user not authenticated    
  * 
  *  /logout:
  *    get:
@@ -531,7 +551,9 @@ wss.on('connection', function connection(ws) {
  *            
  *      responses:
  *        200:
- *          description: permette di creare o aggiornare una recensione
+ *          description: Recensione creata con successo!
+ *        401:
+ *          description: Non autorizzato
  * 
  *  /elimina:
  *    post:
@@ -550,14 +572,15 @@ wss.on('connection', function connection(ws) {
  *                  description: Codice recensione
  *                xid:
  *                  type: string
- *                  description: Codice luogo (es. N5978649686)
- *                  
+ *                  description: Codice luogo (es. N5978649686)                  
  *      tags: [Reviews]
  *      responses:
  *        200:
- *          description: permette di eliminare una recensione
- *        404: 
- *          description: Error
+ *          description: Recensione eliminata correttamente
+ *        404:
+ *          description: Recensione non trovata
+ *        401:
+ *          description: Non autorizzato
  * 
  *  /newfeedback:
  *    get:
@@ -575,8 +598,8 @@ wss.on('connection', function connection(ws) {
  *      responses:
  *        200:
  *          description: Restituisce la pagina feedback.ejs con il modulo per inserire i feedback (e, se definita nella query anche la foto aggiunta)
- *        403: 
- *          description: Error token expired
+ *        401: 
+ *          description: Non autorizzato
  *        404: 
  *          description: Error
  *  /feedback:
@@ -597,6 +620,12 @@ wss.on('connection', function connection(ws) {
  *      security:
  *        - JWT: []
  *        - JWT_refresh: []
+ *      
+ *      responses:
+ *        200:
+ *          description: Token refreshato correttamente
+ *        401:
+ *          description: Non autorizzato
  * 
  *  /error:
  *    get:
@@ -611,7 +640,7 @@ wss.on('connection', function connection(ws) {
  *      tags: [Error]
  *      responses:
  *        200:
- *          description: Restituisce la pagina error.ejs che spiega con la foto di un gattino qual è l'errore e offre la possibilità all'utente di inviare un feedback o accedere se non ha effettuato l'accesso
+ *          description: Restituisce la pagina error.ejs che spiega con la foto di un gattino qual è l'errore.
  * 
  *  
  *     
@@ -620,118 +649,73 @@ wss.on('connection', function connection(ws) {
  */
 
 
-//*****************************FINE DOCUMENTAZIONE*******************************/
+//***********************************************************FINE DOCUMENTAZIONE**********************************************************************/
 
 
+
+//****************************************************************PATHS**********************************************************************************/
+
+
+//ROOT
 app.get('/', function (req,res){
-  //console.log(JSON.stringify(req.signedCookies))
-    res.render('index', {check: false, registrazione: false});
+  if (req.signedCookies.jwt==null || req.signedCookies.jwt=='' || req.signedCookies.jwt==undefined){
+    if (req.signedCookies.refresh==null || req.signedCookies.refresh==''||req.signedCookies.refresh==undefined){
+      res.render('index', {check: false, registrazione: false});    //se l'utente non ha ancora eseguito il login
+    }
+    else{
+      res.redirect('/home')
+    }
+  }
+  else{
+    res.redirect('/home')
+  }
 });
 
 
-app.post('/',function (req,res){
-  if(req.body.sub == 'Accedi con Facebook'){
-    res.redirect('/facebooklogin')
-  }
-  else {
-    res.redirect(404, '/error?statusCode=404')
-  }
-})
-
-app.get('/facebooklogin',function (req,res){
-  fconnecting=true;
-  res.status(201).redirect("https://www.facebook.com/v10.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.FB_CLIENT_ID+"&redirect_uri=https://localhost:8000/homepage&response_type=code");
-});
-
-app.get('/googlelogin', function(req, res){
-  gconnecting=true;
-  if (req.query.length>0){
-    res.cookie('xid', req.query.xid, {maxAge:315360000000, signed: true, secure:true, httpOnly: true})
-    xid = req.query.xid;  //se si entra dalla pagina delle review, si ritornerà poi a quella pagina, quindi salvo xid
-    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/googlecallback&client_id="+process.env.G_CLIENT_ID);
-  }
-  else{ 
-    res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/googlecallback&client_id="+process.env.G_CLIENT_ID);
-  }
-})
-
-app.get('/signup', function(req, res){
-  res.render('signup.ejs',{check: check});
-});
-
+//HOMEPAGE
 app.get('/home', authenticateToken, function(req,res){
-    username = req.token.info.info.username
-  
+  username = req.token.info.info.username
   if (req.signedCookies.googleaccess_token==undefined){
     gconnected=false
   }
   else{
     gconnected=true
   }
-
-
-  
   res.render('homepage', {fconnected:true, gconnected:gconnected, username:username})
 })
 
-app.get('/homepage', function (req,res){
-  if (req.query.code!=undefined){  
-    if (req.query.scope!=undefined){
-      res.redirect('gtoken?code='+req.query.code)
-    }
-    else{
-      code=req.query.code;  
-      res.redirect('/ftoken?code='+code)
-    }
+
+
+//****************************************************************OAUTH 2.0**********************************************************************************/
+
+
+//****************************************************************FACEBOOK*****************************************************************************/
+
+//Redirect a /facebooklogin
+app.post('/',function (req,res){
+  if(req.body.sub == 'Accedi con Facebook'){
+    res.redirect('/facebooklogin')
   }
-  else{
-    res.status(403).redirect(403, '/error?statusCode=403')
-  }    
+  else {
+    res.status(404).redirect('/error?statusCode=404')
+  }
 })
 
-//acquisisci google token
-app.get('/gtoken', authenticateToken, function(req, res){
-  var xid;
-  var feedbackposting;
-  code = decodeURIComponent(req.query.code)
-  if (req.query.stato != undefined){
-    feedbackposting=true;
-  }
-  else{
-    feedbackposting=false
-  }
-  if (req.query.xid!=undefined){
-    xid = req.query.xid
-  }
-  else{
-    xid='';
-  }
-  var formData = {
-    code: code,
-    client_id: process.env.G_CLIENT_ID,
-    client_secret: process.env.G_CLIENT_SECRET,
-    redirect_uri: "https://localhost:8000/googlecallback",
-    grant_type: 'authorization_code'
-  }
-  request.post({url:'https://www.googleapis.com/oauth2/v4/token', form: formData}, function optionalCallback(err, httpResponse, body) {
-    if (err) {
-      return console.error('upload failed:', err);
-    }
-    //console.log('Upload successful!  Server responded with:', body);
-    var info = JSON.parse(body);
-    if(info.error != undefined){
-      res.redirect(404, '/error?statusCode=404' );
-    }
-    else{
-      googletoken = info.access_token; //google access token
-      gtoken = info.id_token; //google id_token
-      gconnected = true;
-      console.log("Google access token "+ info.access_token);
-      res.cookie('gid_token', gtoken, {maxAge:86400000, secure:true, signed: true, httpOnly: true})
-      res.cookie('googleaccess_token', googletoken, {maxAge:900000, secure:true, signed: true, httpOnly: true})
-      res.redirect('/home')
-    }
-  })
+
+//Accesso con Facebook Oauth2.0
+app.get('/facebooklogin',function (req,res){
+  res.status(201).redirect("https://www.facebook.com/v10.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.FB_CLIENT_ID+"&redirect_uri=https://localhost:8000/homepage&response_type=code");
+});
+
+
+//FACEBOOK CALLBACK
+app.get('/homepage', function (req,res){
+  if (req.query.code!=undefined){  
+      code=req.query.code;  
+      res.redirect('/ftoken?code='+code)
+  }  else{
+    res.status(403).redirect(403, '/error?statusCode=403')
+  }    
 })
 
 
@@ -759,23 +743,13 @@ app.get('/ftoken',function (req,res){
     else{
       ftoken = info.access_token;
       res.cookie('fbaccess_token', ftoken, {maxAge:37500000, signed: true,secure: true, httpOnly: true})
-      //res.status(200).redirect('/mytoken')
       res.redirect('fb_pre_access')
     }
   });
 });
 
-app.get('/mytoken', function(req,res){
-  if(req.signedCookies.fbaccess_token!=undefined){
-    fconnected=true;
-    if (req.signedCookies.googleaccess_token!=undefined){
-      gconnected=true;
-    }
-    res.render('mytoken', {fconnected:fconnected, gconnected: gconnected, ftoken: req.signedCookies.fbaccess_token})
-  }
-})
 
-
+//Pagina di registrazione all'applicazione web PlaceAdvisor
 app.get('/fb_pre_access',function (req,res){
   ftoken='';
   if (req.signedCookies.fbaccess_token!=undefined){
@@ -791,10 +765,8 @@ app.get('/fb_pre_access',function (req,res){
     url:     url,
     }, function(error, response, body){
       //console.log(body);
-      body1 = JSON.parse(body);
-      var stringified = JSON.stringify(body1);
-      stringified = stringified.replace('\u0040', '@');
-      var parsed =JSON.parse(stringified);
+      var body2 = body.replace('\u0040', '@');
+      var parsed =JSON.parse(body2);
       email = parsed.email
       //console.log(email)
       const fbinfo=parsed
@@ -805,70 +777,142 @@ app.get('/fb_pre_access',function (req,res){
         headers: {
           'content-type': 'application/json'
         },
-        body: JSON.stringify(body1)
   
         }, function(error, response, body){
           if(error) {
             console.log(error);
           } else {
-            //console.log(response.statusCode, body);
             var info = JSON.parse(body)
-                        
-            if(info.error){
+            if(info.error){               //SE L'UTENTE NON ESISTE, SETTO IL COOKIE (CRIPTATO) PRE-REGISTRAZIONE, CON I DATI DI FB MINIMI PER ESEGUIRE LA REGISTRAZIONE
               jsonobj= {
                 "info": fbinfo,
                 "fbtoken": ftoken
               }
-              //console.log("QUESTA QUA è LA FUNZIONE CHE SETTA IL COOKIE SE L'UTENTE NON ESISTE")
-              jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
+              jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{  //CREO IL TOKEN
+                if (error){
+                  console.log(error);
+                  res.redirect('/error?statusCode=503')
+                }
                 res.cookie('jwt', token, {httpOnly: true,secure: true, signed:true, maxAge:1800000});           
                 //console.log('Questo è il JWT!!' + token);
-                res.redirect('/fbsignup'); //Utente non esiste quindi lo faccio registrare
+                res.redirect('/fbsignup'); 
               })
-              
-              
             }
-            else{
+            else{                         //SE L'UTENTE ESISTE, SETTO IL COOKIE (CRIPTATO) CON MAIL E NOME DELL'UTENTE 
               jsonobj= {
                 "info":{ 
-                "email": info.email,
-                "username": info.username,
-                
+                  "email": info.email,
+                  "username": info.username
                 },
                 "fbtoken": ftoken
               }
               res.cookie('fbaccess_token', '', {httpOnly: true,secure: true, signed:true, maxAge:0});
-
-              //console.log("QUESTA QUA è LA FUNZIONE CHE SETTA IL COOKIE SE L'UTENTE ESISTE")
               jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
-                if (err) console.log(err);
+                if (err){
+                  console.log(err);
+                } 
+                else{
                 res.cookie('jwt', token, {httpOnly: true, secure:true, signed:true, maxAge:1800000});              
                 console.log('Questo è il JWT!!' + token);
-                
+                }
               })
               if(req.signedCookies.refresh==null){
-              jwt.sign({info:jsonobj}, refresh_secretKey, { expiresIn: '24h' }, (err, refreshtoken)=>{
-                res.cookie('refresh', refreshtoken, {httpOnly: true, secure: true, signed:true, maxAge:86400000})
-                res.redirect('/home');  //Utente esiste, può accedere
-              })
-            }
-            else{
-              res.redirect('/home');
-            }
+                jwt.sign({info:jsonobj}, refresh_secretKey, { expiresIn: '24h' }, (err, refreshtoken)=>{
+                  res.cookie('refresh', refreshtoken, {httpOnly: true, secure: true, signed:true, maxAge:86400000})
+                  res.redirect('/home');  //Utente esiste, può accedere
+                })
+              }
+              else{
+                res.redirect('/home');
+              }
             }
           }
       });
     });
 })
 
+//*****************************************************FINE FACEBOOK OAUTH**********************************************************/
 
-app.get('/fbsignup', authenticateToken, function(req,res){
-  const ftoken = req.token.info.fbtoken
-  const fbinfo= req.token.info.info
-  res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken, data: fbinfo});
+
+//*******************************************************GOOGLE OAUTH************************************************************/
+
+
+//Accesso con Google OAuth2.0
+app.get('/googlelogin', function(req, res){
+  res.redirect("https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/photoslibrary.readonly&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=https://localhost:8000/googlecallback&client_id="+process.env.G_CLIENT_ID);
 })
 
 
+//GOOGLE CALLBACK
+app.get('/googlecallback', function (req,res){
+  if (req.query.code!=undefined){  
+      res.redirect('gtoken?code='+req.query.code)
+  }
+  else{
+    res.status(403).redirect(403, '/error?statusCode=403')
+  }    
+})
+
+
+//acquisisci google token
+app.get('/gtoken', authenticateToken, function(req, res){
+  code = decodeURIComponent(req.query.code)
+  
+  var formData = {
+    code: code,
+    client_id: process.env.G_CLIENT_ID,
+    client_secret: process.env.G_CLIENT_SECRET,
+    redirect_uri: "https://localhost:8000/googlecallback",
+    grant_type: 'authorization_code'
+  }
+  request.post({url:'https://www.googleapis.com/oauth2/v4/token', form: formData}, function callback(err, httpResponse, body) {
+    if (err) {
+      return console.error('upload failed:', err);
+    }
+    //console.log('Upload successful!  Server responded with:', body);
+    var info = JSON.parse(body);
+    if(info.error != undefined){
+      res.redirect(404, '/error?statusCode=404' );
+    }
+    else{
+      googletoken = info.access_token; //google access token
+      
+      console.log("Google access token "+ info.access_token);
+      res.cookie('googleaccess_token', googletoken, {maxAge:900000, secure:true, signed: true, httpOnly: true})
+      if (req.signedCookies.xid!=null){
+        xid = req.cookies.xid;
+        res.cookie('xid', '', {maxAge:0, signed: true, secure:true, httpOnly: true})
+        res.redirect('/details?xid='+xid)
+      }
+      else{
+        res.redirect('/home')
+      }
+    }
+  })
+})
+
+
+//******************************************************GOOGLE OAUTH************************************************************/
+
+
+//******************************************************User************************************************************/
+
+
+//REGISTRAZIONE E CREAZIONE DI UN ACCOUNT PlaceAdvisor
+app.get('/fbsignup', authenticateToken, function(req,res){
+  const ftoken = req.token.info.fbtoken
+  const fbinfo= req.token.info.info
+  if (req.token.info.info.username!=undefined && req.token.info.info.username!=''){
+    res.redirect('/home')
+  }
+  else{
+    res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken, data: fbinfo});
+  }
+  
+})
+
+
+//FUNZIONE CHE REGISTRA L'UTENTE E FA IL CHECK SE IL NOME UTENTE è GIà STATO PRESO
 app.post('/fbsignup', authenticateToken, function (req,res){
   payload=req.token.info
   username=req.body.username
@@ -878,24 +922,19 @@ app.post('/fbsignup', authenticateToken, function (req,res){
     headers: {
       'content-type': 'application/json'
     },
-    body: JSON.stringify(body1)
   
   }, function(error, response, body){
       if(error) {
         console.log(error);
       } else {
-        //console.log(response.statusCode, body)
         var data = JSON.parse(body) 
         for(var i=0; i<data.total_rows;i++){
-          if(data.rows[i].doc.username === username){
-            const ftoken = req.token.info.fbtoken
-            const fbinfo= req.token.info.info
-            res.render('fbsignup', {fconnected: true,check: true, ftoken:ftoken, data: fbinfo});
+          if(data.rows[i].doc.username === username){ //SE ESISTE UN UTENTE GIà REGISTRATO CON UN NOME UTENTE UGUALE A QUELLO SCELTO NEL FORM
+            res.redirect('/error?statusCode=409'); //NOME UTENTE GIà ESISTENTE
             return;
           }
         }
         body1={
-    
           "name": payload.info.first_name,
           "surname": payload.info.last_name,
           "email": payload.info.email,
@@ -934,44 +973,26 @@ app.post('/fbsignup', authenticateToken, function (req,res){
               
                 res.cookie('jwt', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
                 jwt.sign({info:jsonobj}, secretKey, { expiresIn: '30m' }, (err, token)=>{
-                res.cookie('fbaccess_token', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
-                res.cookie('jwt', token, {httpOnly: true,secure: true, signed:true, maxAge:1800000})            
-                console.log('Questo è il nuovo JWT!!' + token)
-                
-                
-                })     //refresh_token      
-                jwt.sign({info:jsonobj}, refresh_secretKey, {expiresIn: '24h'}, (err, refreshtoken)=>{
-                  res.cookie('refresh', refreshtoken, {httpOnly: true, secure: true, signed:true, maxAge:86400000})
-                  res.redirect('/home');  //Utente esiste, può accedere
-                
+                  res.cookie('fbaccess_token', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
+                  res.cookie('jwt', token, {httpOnly: true,secure: true, signed:true, maxAge:1800000})            
+                  console.log('Questo è il nuovo JWT!!' + token)                
+                })      
+                jwt.sign({info:jsonobj}, refresh_secretKey, {expiresIn: '24h'}, (err, refreshtoken)=>{                    
+                  res.cookie('refresh', refreshtoken, {httpOnly: true, secure: true, signed:true, maxAge:86400000})         //refresh_token 
+                  res.redirect('/home');  //Utente esiste, può accedere     
             })
           }
-        });
-      
-        
+        });        
       }
-    })
-  
-  
-  
+    })  
 });
 
-app.get('/googlecallback', function (req,res){
-  if (req.query.code!=undefined){  
-      res.redirect('gtoken?code='+req.query.code)
-  }
-  else{
-    res.status(403).redirect(403, '/error?statusCode=403')
-  }    
-})
 
 
 
-
-
+//INFO UTENTE
 app.get('/info', authenticateToken, function(req, res){
   payload=req.token.info
-
   var email
   if(payload.info) email=payload.info.email
   else email = payload.email
@@ -980,10 +1001,71 @@ app.get('/info', authenticateToken, function(req, res){
     var data = JSON.parse(body)
     res.render('user_info', {data: data, check:true});
   })
-  
-  
 })
+
+//Refresha il token
+app.get('/refreshtoken', function(req, res){
+  const refresher = req.signedCookies.refresh;
+
+  if (refresher == null) return res.redirect('/error?statusCode=401')
+
+  jwt.verify(refresher, refresh_secretKey, (err, token)=>{
+    if (err){
+      return res.redirect('/error?statusCode=403')
+    }
+    else{
+      jwt.sign({info:token.info}, secretKey, { expiresIn: '30m' }, (err, newtoken)=>{
+        res.cookie('jwt', newtoken, {httpOnly: true,secure: true, signed:true, maxAge:1800000});           
+        //console.log('Questo è il JWT REFRESHATO!!' + newtoken);
+        res.render('mytoken.ejs', {ntoken: newtoken})
+    })
+    }
+  })
+})
+
+
+//ELIMINA IL PROPRIO ACCOUNT
+app.get('/delete_account',authenticateToken,function (req,res){
+  payload=req.token.info
+  var email=payload.info.email
+  var username = payload.info.username
+  request.get('http://admin:admin@couchdb:5984/users/'+email, function callback(error, response, body){
+    var data = JSON.parse(body)
+    if(error) console.log(error)
+    else{
+      var rev = data._rev
+      request({
+        url: 'http://admin:admin@couchdb:5984/users/'+email+'?rev='+rev,
+        method: 'DELETE',
+        headers: {
+          'content-type': 'application/json'
+        },
+        json:true
+      }, function(error, response, body){
+        if(error) {
+          console.log(error);
+          res.render('user_info', {data: data, check:false});
+        } else {
+          //console.log(response.statusCode, body);
+          res.cookie('googleaccess_token', '', {maxAge:0, secure:true, signed: true, httpOnly: true})
+          res.cookie('jwt', '', {httpOnly: true,secure: true, signed:true, maxAge:0}) 
+          res.cookie('refresh', '', {httpOnly: true,secure: true, signed:true, maxAge:0}) 
+          deletereview(username)
+          res.render('account_deleted', {username: username});
+        }
+      })
     
+    }
+  })
+});
+
+
+//*****************************************************User**********************************************************/
+
+
+//***********************************************OpenaMap, OpenWeather, Here API*****************************************/
+
+
 //API Open Trip Map Places
 app.post('/openmap', authenticateToken, function(req,res){   
   city = req.body.city;
@@ -1005,60 +1087,7 @@ app.post('/openmap', authenticateToken, function(req,res){
 });
 
 
-function checkCity(city){               //funzione che esegue un check all'interno del db cities per vedere se esiste un doc col nome della città 'city'
-  request.get('http://admin:admin@couchdb:5984/cities/'+city, function callback(error, response, body){
-    var data = JSON.parse(body)
-      if(data.error){
-        newRegisterCity(city)
-      }
-      else{ updateRegisterCity(city,data) }
-  })
-}
-
-function newRegisterCity(city){         //funzione che salva una nuova città
-    body1 = {
-          "name": city,
-          "search": 1
-        }
-    request({
-          url: 'http://admin:admin@couchdb:5984/cities/'+city,
-          method: 'PUT',
-          headers: {
-            'content-type': 'application/json'
-          },
-          body: JSON.stringify(body1)
-          }, function(error, response, body){
-            if(error) {
-              console.log(error);
-            } else {
-              var info = JSON.parse(body)
-              //console.log("Città creata")
-            }
-    })
-
-
-}
-
-function updateRegisterCity(city,data){             //funzione che aggiorna il numero di ricerche di una città
-  data.search+=1
-  request({
-          url: 'http://admin:admin@couchdb:5984/cities/'+city,
-          method: 'PUT',
-          headers: {
-            'content-type': 'application/json'
-          },
-          body: JSON.stringify(data)
-          }, function(error, response, body){
-            if(error) {
-              console.log(error);
-            } else {
-              var info = JSON.parse(body)
-              //console.log("\nNumero ricerce per la città "+city+" aggiornato\n")
-            }
-  })
-}
-
-
+//Restituisce la lista delle pagine più cercate
 app.get('/city_info', authenticateToken, function(req,res){
   request({
     url: 'http://admin:admin@couchdb:5984/cities/_all_docs?include_docs=true&limit=100',
@@ -1090,16 +1119,17 @@ app.get('/city_info', authenticateToken, function(req,res){
         }
       )
       items = list_city.slice(0, 10)
-
       res.render('city_stat',{data:items})
     }
   })
 })
 
+
+//RESTITUISCE LA LISTA DEI POSTI
 app.get('/app', authenticateToken, function(req,res){ 
   rad = req.query.rad;
-  lat = req.query.lat;
-  lon = req.query.lon;
+  lat = parseFloat(req.query.lat);
+  lon = parseFloat(req.query.lon);
   cate = req.query.cate;
   city = req.query.city;
 
@@ -1124,6 +1154,7 @@ app.get('/app', authenticateToken, function(req,res){
 });
 
 
+//Restituisce le informazioni per un luogo scelto
 app.get('/details', authenticateToken, function(req,res){
   if (req.signedCookies.googleaccess_token==undefined){
     gconnected=false
@@ -1147,12 +1178,11 @@ app.get('/details', authenticateToken, function(req,res){
   var options = {
     url: 'https://api.opentripmap.com/0.1/en/places/xid/'+xid+'?apikey='+process.env.OpenMap_KEY
   }
-  
   request.get(options,function callback(error, response, body){
     info = JSON.parse(body);
     place_name=info.name
-    lat = info.point.lat
-    lon= info.point.lat
+    lat = parseFloat(info.point.lat);
+    lon= parseFloat(info.point.lon);
     //console.log('\r\n'+place_name+'\r\n')
     request.get('http://admin:admin@couchdb:5984/reviews/'+xid, function callback(error, response, body){
       if(error) {
@@ -1177,18 +1207,20 @@ app.get('/details', authenticateToken, function(req,res){
             //Ci sono recensioni
             res.render('details', {gconnected : gconnected, fconnected:true,info: info, xid: xid, reviews: infodb.reviews,n: infodb.reviews.length,lat: lat , lon: lon, api: process.env.HERE_API, photo: photo, info_weather:meteo, icon_id:icon_id, icon_url:icon_url});
           }
-        })
-        
+        }) 
       }
-
     });
-
   });
-  
 });
 
-//Google Photos API
 
+
+//*******************************************Fine OpenaMap, OpenWeather, Here API*****************************************/
+
+
+
+//******************************************************Google Photos API*****************************************/
+//Mostra le foto nel proprio google photos
 app.get('/googlephotosapi', authenticateToken, function(req,res){
   feed= req.query.stato;
   gtoken = req.signedCookies.googleaccess_token;
@@ -1202,12 +1234,12 @@ app.get('/googlephotosapi', authenticateToken, function(req,res){
     }, function(error, response, body){
       if(error){
         console.log(error)
+        return res.status(401).render('expired_token', {google:true})
       }
       else{
-        console.log(body)
         ref=JSON.parse(body)
         if (ref.azp!=process.env.G_CLIENT_ID){
-          res.status(403).render('expired_token', {google:true})
+          res.status(401).render('expired_token', {google:true})
           return
         }
         if (feed == 'feed'){
@@ -1275,28 +1307,29 @@ app.get('/googlephotosapi', authenticateToken, function(req,res){
   })
 }
 });
+//***********************************************Fine google photos api*******************************************************************/
 
 
-
-
-
-
+//PAGINA DI LOGOUT
 app.get('/logout', authenticateToken, function(req,res){
   res.render('logout.ejs', {user:req.token.info.info.username})
 })
 
+//ESEGUI LOGOUT
 app.post('/logout', function(req,res){
-  res.cookie('gid_token', '', {maxAge:0, secure:true, signed: true, httpOnly: true})
   res.cookie('googleaccess_token', '', {maxAge:0, secure:true, signed: true, httpOnly: true})
   res.cookie('jwt', '', {httpOnly: true,secure: true, signed:true, maxAge:0}) 
+  res.cookie('refresh', '', {httpOnly: true,secure: true, signed:true, maxAge:0})
   res.redirect('/');
 })
 
 
-//post recensione:
+//************************************************************Recensioni*****************************************************/
+
+//Posta una recensione
 app.post('/reviews', authenticateToken, function(req,res){
   codice = Date.now();
-  photo = req.body.baseUrl;
+
   if(req.body.rev==='') res.redirect('/details?xid='+req.body.xid);
   else{
     request.get('http://admin:admin@couchdb:5984/reviews/'+req.body.xid, function callback(error, response, body){
@@ -1308,7 +1341,7 @@ app.post('/reviews', authenticateToken, function(req,res){
       infodb = JSON.parse(body);
         if(infodb.error){
           //console.log(req.body)
-          newReview(req, res, codice);  //Se non esiste il documento nel db lo creo
+          newReview(req, res, codice);              //Se non esiste il documento nel db lo creo
         } 
         else{
           updateReview(req, res, codice);             //Altrimenti aggiorno quello esistente
@@ -1320,8 +1353,7 @@ app.post('/reviews', authenticateToken, function(req,res){
   
 });
 
-//elimina recensione:
-
+//Elimina una recensione
 app.post('/elimina', authenticateToken, function(req,res){
   email=req.token.info.info.email
   email=email.replace('\u0040', '@');
@@ -1336,12 +1368,191 @@ app.post('/elimina', authenticateToken, function(req,res){
     res.redirect(404, '/error?statusCode=404')
     return
   }
-  
+})
 
+//************************************************Fine recensioni************************************************/
+
+
+//****************************************************Feedback**************************************************/
+
+//SCRIVI FEEDBACK
+app.get('/newfeedback', authenticateToken, function(req, res){
+  if (req.signedCookies.googleaccess_token!=undefined){
+    gconnected = true
+  }
+  else{
+    gconnected = false
+  }
+  if (Object.keys(req.query).length == 1){
+
+    var photo =req.query.baseUrl;
+  }
+  else{
+    var photo = '';
+  }
+  res.render('feedback', {inviato : false, gconnected: gconnected, photo: photo})
+  
 })
 
 
-function updateUserReviews(req,res, codice){
+//POSTA FEEDBACK
+app.post('/feedback', authenticateToken, function(req, res){
+  if (req.signedCookies.googleaccess_token!=undefined){
+    gconnected = true
+  }
+  else{
+    gconnected = false
+  }
+  username=req.token.info.info.username
+  email=req.token.info.info.email
+  date = new Date();
+  mese=date.getMonth() +1;
+  strdate = date.getDate()+"/"+mese+"/"+date.getFullYear()
+  id = Math.round(Math.random()*10000);
+  if (req.body.baseUrl.length>2){
+    imageToBase64(req.body.baseUrl) // Image URL
+    .then(
+      (response) => {
+        //console.log(response); // "iVBORw0KGgoAAAANSwCAIA..."
+        var data={
+          "id": id,
+          "date": date,
+          "email": email,
+          "name": username,
+          "text" : req.body.feed,
+          "photo": response
+        }
+        updateFeedback(data,res)
+      }).catch(function(error){
+        console.log(error);
+      })
+    }
+    else{
+      var data = {
+        "id": id,
+        "date": date,
+        "email": email,
+        "name": username,
+        "text" : req.body.feed,
+        "photo": req.body.baseUrl
+      }
+      updateFeedback(data,res)
+    }
+})
+
+//**************************************************Fine Feedback******************************************/
+
+//Error
+app.get('/error',function(req,res){
+    res.render('error', {statusCode: req.query.statusCode, fconnected: true});
+})
+
+
+app.get('/bootstrap.min.css',function (req,res){
+  res.sendFile(path.resolve('bootstrap.min.css'));
+});
+
+//404
+app.get('*', function(req, res){
+  res.redirect('/error?statusCode=404')});
+
+
+
+
+//***********************************************************FINE PATHS*************************************************************************/
+
+
+
+
+
+//*******************************************************FUNZIONI AUSILIARIE********************************************************************/
+
+
+//Funzione di middleware per l'autenticazione
+function authenticateToken(req, res, next) {
+  const token = req.signedCookies.jwt
+
+  if (token == null){
+    if(req.signedCookies.refresh!=null) {
+      return res.redirect('/refreshtoken')
+    }
+    else{
+      return res.redirect('/error?statusCode=401')
+    } 
+  }
+  
+
+  jwt.verify(token, secretKey, (err, token) => {
+    
+
+    if (err) {
+      console.log(err)
+      return res.redirect('/refreshtoken')
+    }
+    req.token=token
+    next()
+  })
+}
+
+
+
+
+function checkCity(city){               //funzione che esegue un check all'interno del db cities per vedere se esiste un doc col nome della città 'city'
+  request.get('http://admin:admin@couchdb:5984/cities/'+city, function callback(error, response, body){
+    var data = JSON.parse(body)
+      if(data.error){
+        newRegisterCity(city)
+      }
+      else{
+        updateRegisterCity(city,data) 
+      }
+  })
+}
+
+function newRegisterCity(city){         //funzione che salva una nuova città
+    body1 = {
+          "name": city,
+          "search": 1
+        }
+    request({
+          url: 'http://admin:admin@couchdb:5984/cities/'+city,
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(body1)
+          }, function(error, response, body){
+            if(error) {
+              console.log(error);
+            } else {
+              var info = JSON.parse(body)
+              //console.log("Città creata")
+            }
+    })
+}
+
+function updateRegisterCity(city,data){             //funzione che aggiorna il numero di ricerche di una città
+  data.search+=1
+  request({
+          url: 'http://admin:admin@couchdb:5984/cities/'+city,
+          method: 'PUT',
+          headers: {
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(data)
+          }, function(error, response, body){
+            if(error) {
+              console.log(error);
+            } else {
+              var info = JSON.parse(body)
+              //console.log("\nNumero ricerce per la città "+city+" aggiornato\n")
+            }
+  })
+}
+
+
+
+function updateUserReviews(req,res, codice){        //Funzione che aggiorna le recensioni di un utente
   request({
     url: 'http://admin:admin@couchdb:5984/users/'+req.token.info.info.email,
     method: 'GET',
@@ -1353,7 +1564,8 @@ function updateUserReviews(req,res, codice){
       if(error) {
           console.log(error);
       } else {
-        place_name=req.body.place;
+        place=encodeURI(req.body.place);
+        place_name= place.replace(/%2520/g, ' ')
         var info = JSON.parse(body)
         //console.log('\r\n'+place_name+'\r\n')
         data = new Date();
@@ -1429,7 +1641,7 @@ function updateUserReviews(req,res, codice){
   });
 }
 
-function newReview(req,res, codice){
+function newReview(req,res, codice){          //Funzione che aggiunge una recensione alla pagina del posto (e crea la pagina del posto se esso non esiste)
   xid=req.body.xid
   payload=req.token.info;
   data = new Date();
@@ -1490,8 +1702,6 @@ function newReview(req,res, codice){
       ]
     }
   
-
-
   request({
     url: 'http://admin:admin@couchdb:5984/reviews/'+xid,
     method: 'PUT',
@@ -1509,10 +1719,9 @@ function newReview(req,res, codice){
       }
     });
   }
-  
 }
 
-function updateReview(req,res,codice){
+function updateReview(req,res,codice){            //Funzione che aggiorna le recensioni di un posto
   payload=req.token.info
   xid = req.body.xid;
   //console.log("XID_ : "+xid)
@@ -1593,7 +1802,7 @@ function updateReview(req,res,codice){
 
 }
 
-function deletereviewfromUser(num, email, xid){
+function deletereviewfromUser(num, email, xid){             //Funzione per eliminare una recensione dalla pagina dell'utente
   request({
     url: 'http://admin:admin@couchdb:5984/users/'+email,
     method: 'GET',
@@ -1611,6 +1820,9 @@ function deletereviewfromUser(num, email, xid){
           if (info.reviews[h].codice==num){
             info.reviews.splice(h, 1)
           } 
+          if ((h==(info.reviews.length-1)) && (infoinfo.reviews[h].codice==num)){
+            return res.redirect('/error?statusCode=401')
+          }
         }}
         request({
           url: 'http://admin:admin@couchdb:5984/users/'+email,
@@ -1633,7 +1845,7 @@ function deletereviewfromUser(num, email, xid){
 }
 
 
-function deletereviewfromCity(codice, xid){
+function deletereviewfromCity(codice, xid){         //Funzione per eliminare una recensione dalla pagina del luogo
   request({
     url: 'http://admin:admin@couchdb:5984/reviews/'+xid,
     method: 'GET',
@@ -1670,72 +1882,36 @@ function deletereviewfromCity(codice, xid){
     })
 }
 
-//feedback
-app.get('/newfeedback', authenticateToken, function(req, res){
-  if (req.signedCookies.googleaccess_token!=undefined){
-    gconnected = true
-  }
-  else{
-    gconnected = false
-  }
-  if (Object.keys(req.query).length == 1){
 
-    var photo =req.query.baseUrl;
-  }
-  else{
-    var photo = '';
-  }
-  res.render('feedback', {inviato : false, gconnected: gconnected, photo: photo})
+function deletereview(username){                    //Funzione che elimina tutte le recensioni scritte da un utente
+  request({
+    url: 'http://admin:admin@couchdb:5984/reviews/_all_docs?include_docs=true',
+    method: 'GET',
+    headers: {
+      'content-type': 'application/json'
+    },
   
-})
-
-app.post('/feedback', authenticateToken, function(req, res){
-  if (req.signedCookies.googleaccess_token!=undefined){
-    gconnected = true
-  }
-  else{
-    gconnected = false
-  }
-  username=req.token.info.info.username
-  email=req.token.info.info.email
-  date = new Date();
-  mese=date.getMonth() +1;
-  strdate = date.getDate()+"/"+mese+"/"+date.getFullYear()
-  id = Math.round(Math.random()*10000);
-  if (req.body.baseUrl.length>2){
-    imageToBase64(req.body.baseUrl) // Image URL
-    .then(
-      (response) => {
-        //console.log(response); // "iVBORw0KGgoAAAANSwCAIA..."
-        var data={
-          "id": id,
-          "date": date,
-          "email": email,
-          "name": username,
-          "text" : req.body.feed,
-          "photo": response
-        }
-        updateFeedback(data,res)
-      }).catch(function(error){
+  }, function(error, response, body){
+      if(error) {
         console.log(error);
-      })
-    }
-    else{
-      var data = {
-        "id": id,
-        "date": date,
-        "email": email,
-        "name": username,
-        "text" : req.body.feed,
-        "photo": req.body.baseUrl
+      } else {
+        //console.log(response.statusCode, body)
+        var data = JSON.parse(body)
+        for(var i=0; i<data.total_rows;i++){
+          for(var j=0; j<data.rows[i].doc.reviews.length;j++){
+            if(data.rows[i].doc.reviews[j].name === username){
+              deletereviewfromCity(data.rows[i].doc.reviews[j].codice,data.rows[i].id)
+            }
+          }
+          
+        }
       }
-      updateFeedback(data,res)
-    }
-})
+    })
+}
 
 
 
-function updateFeedback(data,res){
+function updateFeedback(data,res){                      //Funzione che aggiorna i feedback di un utente
   email=data.email.replace('\u0040', '@');
   request.get('http://admin:admin@couchdb:5984/users/'+email, function callback(error, response, body){
 
@@ -1775,7 +1951,6 @@ function updateFeedback(data,res){
             //console.log(data)
             
             res.render('feedback', {inviato : true})
-            feedbackposting=false;
           }
           catch(error){
             console.error(error);
@@ -1789,81 +1964,16 @@ function updateFeedback(data,res){
     });
 }
 
-function log_on_file(data){
-  fs.appendFile('logs.txt',data+'\r\n', ()=>{
+function log_on_file(data){                             //Funzione per scrivere sul file logs.txt
+  fs.appendFile(appRoot+'/logs.txt',data+'\r\n', ()=>{
     //console.log('scritto su file')
   })
 
 }
 
-app.get('/bootstrap.min.css',function (req,res){
-  res.sendFile(path.resolve('bootstrap.min.css'));
-});
 
-app.get('/delete_account',authenticateToken,function (req,res){
-  payload=req.token.info
-  var email=payload.info.email
-  var username = payload.info.username
-  request.get('http://admin:admin@couchdb:5984/users/'+email, function callback(error, response, body){
-    var data = JSON.parse(body)
-    if(error) console.log(error)
-    else{
-      var rev = data._rev
-      request({
-        url: 'http://admin:admin@couchdb:5984/users/'+email+'?rev='+rev,
-        method: 'DELETE',
-        headers: {
-          'content-type': 'application/json'
-        },
-        json:true
-      }, function(error, response, body){
-        if(error) {
-          console.log(error);
-          res.render('user_info', {data: data, check:false});
-        } else {
-          //console.log(response.statusCode, body);
-          deletereview(username)
-          res.render('account_deleted', {username: username});
-        }
-      })
-    
-    }
-  })
-  
-  
-});
-function deletereview(username){
-  request({
-    url: 'http://admin:admin@couchdb:5984/reviews/_all_docs?include_docs=true',
-    method: 'GET',
-    headers: {
-      'content-type': 'application/json'
-    },
-  
-  }, function(error, response, body){
-      if(error) {
-        console.log(error);
-      } else {
-        //console.log(response.statusCode, body)
-        var data = JSON.parse(body)
-        for(var i=0; i<data.total_rows;i++){
-          for(var j=0; j<data.rows[i].doc.reviews.length;j++){
-            if(data.rows[i].doc.reviews[j].name === username){
-              deletereviewfromCity(data.rows[i].doc.reviews[j].codice,data.rows[i].id)
-            }
-          }
-          
-        }
-      }
-    })
-}
+//************************************************************FINE FUNZIONI AUSILIARIE********************************************************************/
 
-app.get('/error',function(req,res){
-    res.render('error', {statusCode: req.query.statusCode, fconnected: true});
-})
-
-app.get('*', function(req, res){
-  res.redirect('/error?statusCode=404')});
 
 //Per usare http basta decommentare qui e commentare la parte sotto
 
@@ -1874,6 +1984,10 @@ app.get('*', function(req, res){
   console.log('Server listening at http://%s:%s', host, port);
 })*/
 
+
+//*******************************************************************************************************************************************************/
+
+//*******************************************************HTTPS******************************************************************************/
 
 const server = https.createServer({
   key: fs.readFileSync(path.join(__dirname, 'security','key.pem')),
