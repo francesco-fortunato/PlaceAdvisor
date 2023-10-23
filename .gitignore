@@ -130,3 +130,8 @@ dist
 .pnp.*
 
 security/
+
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
