@@ -41,6 +41,23 @@ services:
             - app-network
         restart: always
 
+    support:
+        build:
+            context: ./support
+        ports:
+            - "3000:3000"
+        depends_on:
+            - couchdb
+            - rabbitmq
+        links:
+            - couchdb
+            - rabbitmq
+        volumes:
+            - ./support:/src/app
+        networks:
+            - app-network
+        restart: on-failure
+
 
 volumes:
     couchdb-data:

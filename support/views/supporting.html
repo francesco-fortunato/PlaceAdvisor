@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Support</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    #chat {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 300px;
+      overflow-y: scroll;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      border-radius: 5px;
+    }
+
+    li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    li:last-child {
+      border-bottom: none;
+    }
+
+    #messageInput {
+      width: 70%;
+      padding: 10px;
+      margin-right: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    #sendButton {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #sendButton:hover {
+      background-color: #0056b3;
+    }
+    body {
+  margin: 0 auto;
+  max-width: 800px;
+  padding: 0 20px;
+}
+
+.container {
+  border: 2px solid #dedede;
+  background-color: #f1f1f1;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 10px 0;
+}
+
+.darker {
+  border: 2px solid #dedede;
+  background-color: #f1f1f1;
+  border-radius: 5px;
+  padding: 10px;
+  margin: 10px 0;
+  border-color: #ccc;
+  background-color: #ddd;
+}
+
+.container::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+
+.container img {
+  float: left;
+  max-width: 60px;
+  width: 100%;
+  margin-right: 20px;
+  border-radius: 50%;
+}
+
+.container img.right {
+  float: right;
+  margin-left: 20px;
+  margin-right:0;
+}
+
+.time-right {
+  float: right;
+  color: #aaa;
+}
+
+.time-left {
+  float: left;
+  color: #999;
+}
+  </style>
+</head>
+<body>
+  <h1>Customer Support Chat</h1>
+  <div style="display: flex;">
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button id="sendButton">Send</button>
+  </div>
+  <div id="messageDisplay"></div>
+
+
+  <!-- Add a hidden input field to store the selected socket ID -->
+  <input type="hidden" id="userId" value="">
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const userId = urlParams.get('id');
+    document.getElementById('userId').value = userId;
+    const socket = io();
+
+    document.getElementById('sendButton').addEventListener('click', () => {
+      const messageInput = document.getElementById('messageInput');
+      const message = messageInput.value.trim();
+
+      if (message) {
+        socket.emit('chatMessage', { content: message, fromUser: false, fromCustomer: true, toSocketId: userId, username: document.getElementById('userId').value });
+        messageInput.value = '';
+      }
+    });
+
+    socket.on('chatMessage', (data) => {
+      console.log(data);
+
+      const chat = document.getElementById('messageDisplay');
+      
+      const messageElement = document.createElement('p');
+      const messageText = data.fromCustomer ? `You: ${data.content}` : `User (${data.username}): ${data.content}`;
+      const messageContainer = document.createElement('div');
+        if(!data.fromUser)
+        {
+          messageContainer.classList.add('container');
+        }
+        else
+        {
+          messageContainer.classList.add('darker');
+        }
+        
+      messageElement.textContent = messageText;
+
+
+      messageContainer.appendChild(messageElement);
+      
+      chat.appendChild(messageContainer);
+
+    });
+  </script>
+</body>
+</html>

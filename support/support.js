@@ -97,6 +97,12 @@ app.get('/support', (req, res) => {
   res.render('support.ejs', { activeUsers: activeUsersArray });
 });
 
+app.get('/supporting', (req, res) => {
+  // Serve an HTML page for customer care agents
+  res.sendFile(__dirname + '/views/supporting.html');
+});
+
+
 const activeUsers = new Set(); // Storing active user connections
 
 // Handling socket.io connections
