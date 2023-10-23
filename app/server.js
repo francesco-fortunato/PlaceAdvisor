@@ -17,6 +17,8 @@ const swaggerJsDoc= require('swagger-jsdoc'); //usato per la documentazione
 const swaggerUi= require('swagger-ui-express'); //usato per la documentazione
 const { waitForDebugger } = require('inspector');
 require('dotenv').config()
+const socketIo = require('socket.io');
+
 
 //********************************************************FINE DIPENDENZE ************************************************************************/
 
@@ -1442,6 +1444,21 @@ app.post('/feedback', authenticateToken, function(req, res){
 
 //**************************************************Fine Feedback******************************************/
 
+//******************************************************Chat***********************************************/
+
+app.get('/chat', authenticateToken, (req, res) => {
+  username = req.token.info.info.username
+  console.log(username)
+  console.log(req.token.info)
+  console.log(req.token)
+  res.cookie('username', username, { maxAge: 900000, httpOnly: true });
+
+  // Serve an HTML page for users to submit messages
+  res.render('user_chat', {username: username});
+});
+
+//*************************************************Fine Chat***********************************************/
+
 //Error
 app.get('/error',function(req,res){
     res.render('error', {statusCode: req.query.statusCode, fconnected: true});
@@ -1993,5 +2010,7 @@ const server = https.createServer({
   key: fs.readFileSync(path.join(__dirname, 'security','key.pem')),
   cert: fs.readFileSync(path.join(__dirname, 'security','cert.pem'))
 }, app)
+
+const io = socketIo(server);
 
 server.listen(8000, () => console.log('Secure server on port 8000...'))

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Support Chat</title>
+  <!-- Include Socket.io library -->
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    /* Add your CSS styles here */
+    /* Example styles: */
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #chat-container {
+      border: 1px solid #ccc;
+      padding: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    #chat-messages {
+      list-style: none;
+      padding: 0;
+    }
+    #chat-messages li {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Support Chat</h1>
+
+  <div id="chat-container">
+    <ul id="chat-messages"></ul>
+    <input type="text" id="message-input" placeholder="Type your message...">
+    <button id="send-button">Send</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Specify the address of the customer care WebSocket server
+      const socket = io('https://localhost:3000', {
+        withCredentials: true, // Enable sending cookies
+        });
+  
+      // Function to display a new message
+  function displayMessage(message) {
+    const chatMessages = document.getElementById('chat-messages');
+    const li = document.createElement('li');
+    li.textContent = message;
+    chatMessages.appendChild(li);
+    console.log('Message displayed:', message); // Add this line for debugging
+  }
+
+  // Send a message to a specific agent
+  document.getElementById('send-button').addEventListener('click', () => {
+    const message = document.getElementById('message-input').value;
+    const agentId = 'agent123'; // Replace with the agent's ID you want to communicate with
+    socket.emit('user message', { userId: 'user123', agentId, message });
+    document.getElementById('message-input').value = '';
+    displayMessage(`You: ${message}`);
+  });
+
+  // Receive a message
+  socket.on('new message', (message) => {
+    console.log('Message received:', message); // Add this line for debugging
+    displayMessage(`Agent: ${message}`);
+  });
+    });
+  </script>
+  
+</body>
+</html>

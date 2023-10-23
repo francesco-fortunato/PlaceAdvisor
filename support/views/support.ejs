@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Active User Connections</title>
+</head>
+<body>
+  <h1>Active User Connections</h1>
+  <ul id="userList">
+    <% activeUsers.forEach((userId) => { %>
+      <li>
+        <a href="/supporting?id=<%= userId %>">User ID: <%= userId %></a>
+      </li>
+    <% }); %>
+  </ul>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io('/support'); // Connect to the support namespace
+
+    socket.on('connect', () => {
+      console.log('Connected to support namespace');
+    });
+
+    socket.on('updateUserList', (activeUsers) => {
+      const userList = document.getElementById('userList');
+      userList.innerHTML = ''; // Clear the existing list
+
+      activeUsers.forEach((userId) => {
+        const listItem = document.createElement('li');
+    
+        // Create a hyperlink with the socket ID
+        const link = document.createElement('a');
+        link.href = `/supporting?id=${userId}`;
+        link.textContent = `User ID: ${userId}`;
+        
+        listItem.appendChild(link);
+        userList.appendChild(listItem);
+      });
+    });
+
+  </script>
+</body>
+</html>
