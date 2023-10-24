@@ -32,3 +32,4 @@ $ npm install
 $ npm start
 ```
 [Backlog, user stories](https://docs.google.com/spreadsheets/d/1l9VxjUQX7xAIwvrpfBEcYI7EuRXECv_waNIPeZOM3lQ/edit#gid=432542262)
+[slide](https://docs.google.com/presentation/d/1jWPYtxWfY7Kokwy4PX7y3f6Q65fq7V1jPYSkkGITGZA/edit#slide=id.g2909063f93f_0_230)
