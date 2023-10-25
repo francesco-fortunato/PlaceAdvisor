@@ -40,7 +40,6 @@ services:
         networks:
             - app-network
         restart: always
-
     support:
         build:
             context: ./support
@@ -56,6 +55,39 @@ services:
             - ./support:/src/app
         networks:
             - app-network
+        restart: on-failure
+    elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
+        networks:
+            - app-network
+        environment:
+            - discovery.type=single-node
+        ports:
+            - "127.0.0.1:9200:9200"
+            - "127.0.0.1:9300:9300"
+        restart: always
+    kibana:
+        image: docker.elastic.co/kibana/kibana:7.17.13
+        volumes:
+            - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+        networks:
+            - app-network
+        ports:
+            - "127.0.0.1:5601:5601"
+        environment:
+            - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+        depends_on:
+            - elasticsearch
+        restart: always
+    logstash:
+        image: docker.elastic.co/logstash/logstash:7.17.13
+        networks:
+            - app-network
+        volumes:
+            - ./logstash/config:/usr/share/logstash/config
+        depends_on:
+            - elasticsearch
+            - kibana
         restart: on-failure
 
 

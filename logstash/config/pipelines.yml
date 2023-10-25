@@ -1,0 +1,3 @@
+- pipeline.id: main
+  path.config: "/usr/share/logstash/config/couch_to_elastic.conf"
+
