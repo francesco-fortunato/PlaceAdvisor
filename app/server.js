@@ -1464,10 +1464,50 @@ app.get('/error',function(req,res){
     res.render('error', {statusCode: req.query.statusCode, fconnected: true});
 })
 
+//***************************************************Style**************************************************/
 
-app.get('/bootstrap.min.css',function (req,res){
-  res.sendFile(path.resolve('bootstrap.min.css'));
+app.get('/bootstrap.min.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/bootstrap.min.css');
+  res.sendFile(filePath);
 });
+
+app.get('/list.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/list.css');
+  res.sendFile(filePath);
+});
+
+app.get('/bootstrap.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/bootstrap.css');
+  res.sendFile(filePath);
+});
+
+app.get('/material-design-iconic-font.min.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/material-design-iconic-font.min.css');
+  res.sendFile(filePath);
+});
+
+app.get('/font-awesome.min.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/font-awesome.min.css');
+  res.sendFile(filePath);
+});
+
+app.get('/select2.min.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/select2.min.css');
+  res.sendFile(filePath);
+});
+
+app.get('/main.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/main.css');
+  res.sendFile(filePath);
+});
+
+app.get('/piazza.jpg', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/img/piazza.jpg');
+  res.sendFile(filePath);
+});
+
+//*************************************************End Style**************************************************/
+
 
 //404
 app.get('*', function(req, res){

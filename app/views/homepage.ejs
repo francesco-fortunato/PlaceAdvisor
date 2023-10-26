@@ -4,7 +4,27 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <meta name="viewport" content="width=device-width initial-scale=1.0"/>
-  <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+
+   <!-- Icons font CSS-->
+   <link href="material-design-iconic-font.min.css" rel="stylesheet" media="all">
+   <link href="font-awesome.min.css" rel="stylesheet" media="all">
+   <link href="nav.css" rel="stylesheet">
+   <!-- Font special for pages-->
+   <link href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i" rel="stylesheet">
+
+   <!-- Vendor CSS-->
+   <link href="select2.min.css" rel="stylesheet" media="all">
+   <link href="daterangepicker.css" rel="stylesheet" media="all">
+
+   <!-- Main CSS-->
+   <link href="main.css" rel="stylesheet" media="all">
+   <style>
+    body {  
+      background-image: url('piazza.jpg');
+      background-size: cover;
+      background-position: center center;
+    }
+   </style>
 </head>
 <script>
   // Create WebSocket connection.
@@ -34,58 +54,94 @@
       }
   }
 </script>
-<body class="text-center">
+<body>
+  <nav class="navbar navbar-expand-lg " data-bs-theme="light" style="background-color: rgba(97, 160, 189, 0.5);  ">
+    <div class="container-fluid"  >
+      <a class="navbar-brand" href="#">PlaceAdvisor</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarColor03">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="#">Home
+              <span class="visually-hidden">(current)</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/info">Your profile</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/city_info">Insights</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">About</a>
+          </li>
+          <% if (!gconnected){ %>
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/googlelogin">Log in with Google</a>
+          </li>
+          <% } %>
+        </ul>
+        <form class="d-flex">
+          <h3 class="navbar-brand">Ciao, <%=username%></h3>
+          <a class="nav-link" href="https://localhost:8000/logout" style="margin-top: 4%;">Logout</a>
+        
+        </form>
+      </div>
+    </div>
+  </nav>
   <div id="fb-root"></div>
   <div id="fb-root"></div>
   <script async defer crossorigin="anonymous" src="https://connect.facebook.net/it_IT/sdk.js#xfbml=1&version=v10.0&appId=468739614360394&autoLogAppEvents=1" nonce="iFPJ5Fwi"></script>
   
-  
-  <h1 class="mb-3">Homepage</h1>    <h3>Ciao, <%=username%></h3> 
-  <a href="https://localhost:8000/info"><button class="mb-3">Il tuo profilo</button></a>
-  <a href="https://localhost:8000/city_info"><button class="mb-3">Statistiche interessanti</button></a>
-  <br> 
 
-  <form id='search' action="https://localhost:8000/openmap" method="POST">
-    
-    <input required class="mb-3" type="text" placeholder="Città" size="20" name="city" ><br>
-    <select class="mb-3" size=1 cols=3 name="cat"><br>
-      <option selected value=interesting_places> Interesting Places
-      <option value=museums> Museums
-      <option value=religion> Religion
-      <option value=accomodations> Accomodations
-      <option value=amusements> Amusements
-      <option value=architecture> Architecture
-      <option value=theatres_and_entertainments> Theaters and entertainments
-      <option value=natural> Natural
-      <option value=tourist_facilities> Tourist facilities
-      <option value=historic> Historical
-      <option value=industrial_facilities> Industrial facilities 
-      <option value=sport> Sport
- 
 
-    </select>
-    
-    <input required class="mb-3" type="text" placeholder="Raggio (KM)" size="10" name="rad" >
-    <input class="mb-3" type="submit" value="Cerca" name="sub" onclick="sendMessage()">
-  </form>
-
-  <% if (!gconnected){ %>
-    <br> <b><a href="https://localhost:8000/googlelogin"><button class="mb-3">Accedi con Google Photos!</button></a></b><br>
-
-  <%}%>
+    <div style="margin-top:15%; margin-left: 10%;">
+      <div class="wrapper wrapper--w1070 " style="border:none">
+          <div class="card card-7"style="border:none">
+              <div class="card-body"style="border:none">
+                <form id='search' action="https://localhost:8000/openmap" method="POST">
+                      <div class="input-group input--large">
+                          <label class="label">City</label>
+                          <input class="input--style-1" type="text" placeholder="Write your city" name="city">
+                      </div>
+                      <div class="input-group input--medium">
+                          <label class="label">Radius (km)</label>
+                          <input class="input--style-1" type="text" name="rad" placeholder="km">
+                      </div>
+                      <div class="input-group input--large">
+                        <label class="label">Category</label>
+                        <select class="input--style-1" style="border:none; background: transparent; padding: 11; color:black  " size=1 cols=3 name="cat"><br>
+                          <option selected value=interesting_places> Interesting Places
+                          <option value=museums> Museums
+                          <option value=religion> Religion
+                          <option value=accomodations> Accomodations
+                          <option value=amusements> Amusements
+                          <option value=architecture> Architecture
+                          <option value=theatres_and_entertainments> Theaters and entertainments
+                          <option value=natural> Natural
+                          <option value=tourist_facilities> Tourist facilities
+                          <option value=historic> Historical
+                          <option value=industrial_facilities> Industrial facilities 
+                          <option value=sport> Sport
+                     
+                    
+                        </select>
+                      </div>
+                      <button class="btn-submit" type="submit" value="Search" name="sub" onclick="sendMessage()">search</button>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div>
   <% if (fconnected==true) { %>
-  
-  
-    <p><b>Condividi questo sito con i tuoi amici</b></p>
-    <div class="fb-share-button" data-href="https://127.0.0.1:8000" data-layout="button" data-size="large"><a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2F127.0.0.1%3A8000%2F&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Condividi</a></div>
+    <b><a href="https://localhost:8000/newfeedback"><button class="btn btn-info">Mandaci un feedback</button></a></b>
+    
     <br><br>
-    <b><a href="https://localhost:8000/newfeedback"><button class="mb-3">Mandaci un feedback</button></a></b>
+    <div class="fb-share-button" data-href="https://127.0.0.1:8000" data-layout="button" data-size="large"><a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2F127.0.0.1%3A8000%2F&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Condividi</a></div>
 
   <%}%>
-
-    <br><a href="https://localhost:8000/logout"><button class="mb-3">Logout</button></a><br>
-  
-   
-
+</body>
 
 </html>

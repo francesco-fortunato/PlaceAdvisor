@@ -24,6 +24,7 @@
   "dependencies": {
     "amqplib": "^0.7.1",
     "body-parser": "^1.19.0",
+    "cookie-encrypter": "^1.0.1",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
@@ -33,6 +34,7 @@
     "jsonwebtoken": "^9.0.2",
     "path": "^0.12.7",
     "request": "^2.88.2",
+    "socket.io": "^4.7.2",
     "swagger-jsdoc": "^6.0.1",
     "swagger-ui-express": "^4.1.6",
     "ws": "^7.4.5"
