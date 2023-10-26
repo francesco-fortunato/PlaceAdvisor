@@ -1501,6 +1501,11 @@ app.get('/main.css', function (req, res) {
   res.sendFile(filePath);
 });
 
+app.get('/nav.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/nav.css');
+  res.sendFile(filePath);
+});
+
 app.get('/piazza.jpg', function (req, res) {
   const filePath = path.resolve(__dirname, 'views/img/piazza.jpg');
   res.sendFile(filePath);
