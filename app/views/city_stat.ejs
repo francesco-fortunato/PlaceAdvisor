@@ -9,18 +9,7 @@
 </head>
 
 <body class="text-center">
-  <h2 >Le prime <%= data.length %> città più ricercate nel nostro sito:</h2>
-  <ol>
-    <% for(var i=0; i < data.length; i++) {%>
-      <%var times="volte"%>
-      <%if(data[i].search==1){ times="volta"}%>
-      
-      <li>
-        <h4><%=data[i].city %> cercata <%=data[i].search%> <%=times%></h4>
-      </li>
-    <%}%>
-  </ol>
-  
+  <iframe src="http://localhost:5601/app/dashboards#/view/8a3f4e30-69d1-11ee-9a58-7f66f35a4e0d?embed=true&_g=(filters%3A!()%2CrefreshInterval%3A(pause%3A!t%2Cvalue%3A0)%2Ctime%3A(from%3Anow-15m%2Cto%3Anow))&hide-filter-bar=true" height="600" width="800"></iframe>
 </body>
 
 </html>
