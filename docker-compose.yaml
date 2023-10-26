@@ -65,6 +65,8 @@ services:
         ports:
             - "127.0.0.1:9200:9200"
             - "127.0.0.1:9300:9300"
+        volumes:
+        - ./elasticsearch/data:/usr/share/elasticsearch/data
         restart: always
     kibana:
         image: docker.elastic.co/kibana/kibana:7.17.13
@@ -94,7 +96,7 @@ services:
 volumes:
     couchdb-data:
     rabbitmq-data:
-
+    elasticsearch-data:
 
 networks:
     app-network:
