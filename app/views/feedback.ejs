@@ -51,15 +51,6 @@
             <input class="mb-3" type="submit" value="Invia" size="30" onclick="sendMessage()">
         </form>
         
-        <p>Vuoi allegare anche una foto da Google Photos?
-            <% if (!gconnected){ %>
-                <br>Prima devi collegarti però!!</p>
-                <a href="https://localhost:8000/googlelogin"><button class="mb-3">Collegati con google</button></a><br>
-            <% } else { %>
-                 
-                
-                <a href="https://localhost:8000/googlephotosapi?stato=feed"><button class="mb-3">Condividi foto</button></a><br>
-        <% } %>
 
         <br><a href= "https://localhost:8000/home"><button class="mb-3" value="submit">Torna alla home</button></a><br>
     <% } else { %>
