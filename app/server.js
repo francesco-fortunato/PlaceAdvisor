@@ -706,7 +706,7 @@ app.post('/',function (req,res){
 
 //Accesso con Facebook Oauth2.0
 app.get('/facebooklogin',function (req,res){
-  res.status(201).redirect("https://www.facebook.com/v10.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.FB_CLIENT_ID+"&redirect_uri=https://localhost:8000/homepage&response_type=code");
+  res.status(201).redirect("https://www.facebook.com/v18.0/dialog/oauth?scope=email,public_profile&client_id="+process.env.FB_CLIENT_ID+"&redirect_uri=https://localhost:8000/homepage&response_type=code");
 });
 
 
@@ -732,7 +732,7 @@ app.get('/ftoken',function (req,res){
     redirect_uri: "https://localhost:8000/homepage",
     grant_type: 'authorization_code'
   }
-  request.post({url:'https://graph.facebook.com/v10.0/oauth/access_token?', form: formData}, function callback(err, httpResponse, body) {
+  request.post({url:'https://graph.facebook.com/v18.0/oauth/access_token?', form: formData}, function callback(err, httpResponse, body) {
 
     if (err) {
       return console.error('upload failed:', err);
@@ -758,6 +758,7 @@ app.get('/fb_pre_access',function (req,res){
     ftoken = String(req.signedCookies.fbaccess_token) 
   }
   else res.send('ERRORE')
+  console.log(ftoken)
   var url = 'https://graph.facebook.com/me?fields=id,first_name,last_name,picture,email&access_token='+ftoken
   var headers = {'Authorization': 'Bearer '+ftoken};
   var request = require('request');
