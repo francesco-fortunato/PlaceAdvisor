@@ -10,12 +10,12 @@ Our web application, **PlaceAdvisor**, is designed with the aim of simplifying t
 - **Google Photos**: Used for uploading photos in reviews or feedback, with OAuth access.
 - **Facebook**: Utilized for OAuth access and sharing posts.
 - **RabbitMQ**: Employed for sending feedback to the feedback consumer.
-- **Web Socket**: Used for logging.
+- **Web Socket**: Used for logging and chat with support.
 - **CouchDB**: Utilized for data storage.
 - **OpenSSL**: Enables secure HTTPS connections.
 - **Docker**
 
-
+###### API
 - OpenTripMap:  https://opentripmap.io/docs#/ + categories: https://opentripmap.io/catalog
 - Facebook Oauth: https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow?locale=it_IT
 - Google Oauth & Google Photos: https://developers.google.com/photos/library/guides/get-started
