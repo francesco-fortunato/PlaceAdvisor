@@ -6,9 +6,55 @@
     <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"
     type="text/javascript" charset="utf-8"></script>
     <title>Search</title>
-    <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<!-- Icons font CSS-->
+   <link href="material-design-iconic-font.min.css" rel="stylesheet" media="all">
+   <link href="font-awesome.min.css" rel="stylesheet" media="all">
+   <link href="nav.css" rel="stylesheet">
+   <!-- Font special for pages-->
+   <link href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i" rel="stylesheet">
+
+   <!-- Vendor CSS-->
+   <link href="select2.min.css" rel="stylesheet" media="all">
+   <link href="daterangepicker.css" rel="stylesheet" media="all">
+
+   <!-- Main CSS-->
+   <link href="main.css" rel="stylesheet" media="all">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+body,h1,h2,h3,h4,h5 {font-family: "Raleway", sans-serif}
+.checked {
+  color: orange;
+}
+</style>
 </head>
+<body class="w3-light-grey">
 <script>
+
+var selected =false
+var rating=1
+document.addEventListener("DOMContentLoaded", function() {
+ const stars = document.querySelectorAll('.fa-sta');
+
+  stars.forEach((star, index) => {
+    star.addEventListener('click', function() {
+      selected=true
+      rating=index+1
+      for(let i=1; i <stars.length; i++)
+      {
+      	 stars[i].classList.remove('checked');
+      }
+      for (let f=1; f <index+1; f++)
+      {
+      	 stars[f].classList.add('checked');
+      }
+      document.getElementById('rating').value = rating;
+      // You can do something else with the selected value here
+    });
+  });
+});
+
     // Create WebSocket connection.
     const socket = new WebSocket('ws://localhost:8080');
   
@@ -29,42 +75,131 @@
           alert("Per favore riempi tutti i campi...!!!!!!");
           return false;
         }else{
+         
           data = new Date();
-          socket.send(data+': È stato recensito '+xidd[0].value);
+          socket.send(data+': È stato recensito '+xidd[0].value+"rating: "+rating);
+          
           return true;
         }
+        
     }
-</script>    
-    <div id="fb-root"></div><script async defer crossorigin="anonymous" src="https://connect.facebook.net/it_IT/sdk.js#xfbml=1&version=v10.0&appId=468739614360394&autoLogAppEvents=1" nonce="iFPJ5Fwi"></script>
 
-    <h1 name="header"> <%= info.name %> </h1><br>
-    <h2>Dettagli:</h2>
-    <% if (info.preview!=undefined) {%>
-        <img src=<%= info.preview.source  %> width=<%=info.preview.width%> height=<%=info.preview.height%>>
-    <% } else{ %>
-        Immagine non disponibile
-    <% } %>
-    <br>
-    <ul>
-        <li><h3><b><i>Puoi trovarlo a: </b></h3>
-        <%if(info.address.road==undefined) {%>
-            <%= info.address.pedestrian %>
-        <% } else{ %>  
-            <%= info.address.road %>
-        <% } %>
-        civico: </b> 
-        <% if(info.address.house_number==undefined){ %>
-            SNC</i></li><br>
-        <% } else{ %>  
-            <%= info.address.house_number %></i></li><br>
-        <% } %>
-        <li><h3>Informazioni: </h3><i>
-        <% if(info.wikipedia_extracts!=undefined) {%> 
-            <%- info.wikipedia_extracts.html %> </i></li><br>
-        <% } else{ %>  
-            Nessuna informazione disponibile</i></li><br>
-        <% } %>
-        <div style="width: 640px; height: 480px" id="mapContainer"></div>
+
+</script> 
+<nav class="navbar navbar-expand-lg " data-bs-theme="light" style="background-color: rgba(97, 160, 189, 0.5);  ">
+    <div class="container-fluid"  >
+      <a class="navbar-brand" href="#">PlaceAdvisor</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarColor03">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/home">Home
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/info">Your profile</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/city_info">Insights</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#">About</a>
+          </li>
+          <% if (!gconnected){ %>
+          <li class="nav-item">
+            <a class="nav-link" href="https://localhost:8000/googlelogin">Log in with Google</a>
+          </li>
+          <% } %>
+        </ul>
+        <form class="d-flex">
+          <h3 class="navbar-brand">Ciao, <%=username%></h3>
+          <a class="nav-link" href="https://localhost:8000/logout" style="margin-top: 4%;">Logout</a>
+        
+        </form>
+      </div>
+    </div>
+  </nav>   
+    <div id="fb-root"></div><script async defer crossorigin="anonymous" src="https://connect.facebook.net/it_IT/sdk.js#xfbml=1&version=v10.0&appId=468739614360394&autoLogAppEvents=1" nonce="iFPJ5Fwi"></script>
+    <!-- Icons font CSS-->
+   <link href="material-design-iconic-font.min.css" rel="stylesheet" media="all" disabled=true>
+   <link href="font-awesome.min.css" rel="stylesheet" media="all" disabled=true>
+   <link href="nav.css" rel="stylesheet" disabled=true>
+   <!-- Font special for pages-->
+   <link href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i" rel="stylesheet" disabled=true>
+
+   <!-- Vendor CSS-->
+   <link href="select2.min.css" rel="stylesheet" media="all" disabled=true>
+   <link href="daterangepicker.css" rel="stylesheet" media="all" disabled=true>
+
+   <!-- Main CSS-->
+   <link href="main.css" rel="stylesheet" media="all" disabled=true>
+   <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+<!-- ################################################################################################################################################### -->
+    <div class="w3-content" style="max-width:1400px">
+        <% var nome = encodeURI(info.name) %>
+        <!-- Header -->
+        <header class="w3-container w3-center w3-padding-32"> 
+          <h1><b><%= info.name %></b></h1>
+          <p>Description of <span class="w3-tag"><%= info.name %></span></p>
+        </header>
+        
+        <!-- Grid -->
+        <div class="w3-row">
+        
+        <!-- Blog entries -->
+        <div class="w3-col l8 s12">
+          <!-- Blog entry -->
+          <div class="w3-card-4 w3-margin w3-white">
+            <% if (info.preview!=undefined) {%>
+                <img src=<%= info.preview.source  %> width=<%=info.preview.width%> height=<%=info.preview.height%> style="display: block; margin: auto;">
+            <% } else{ %>
+                Immagine non disponibile
+            <% } %>
+            
+            <div class="w3-container">
+              <h3><b>Information</b></h3>
+              <h5>Address: <span class="w3-opacity"> <%if(info.address.road==undefined) {%>
+                <%= info.address.pedestrian %>,
+            <% } else{ %>  
+                <%= info.address.road %>,
+            <% } %>
+            </b> 
+            <% if(info.address.house_number==undefined){ %>
+                SNC</i></li><br>
+            <% } else{ %>  
+                <%= info.address.house_number %></i></li><br>
+            <% } %></span></h5>
+            </div>
+        
+            <div class="w3-container">
+              <p><% if(info.wikipedia_extracts!=undefined) {%> 
+                <%- info.wikipedia_extracts.html %> 
+            <% } else{ %>  
+                Nessuna informazione disponibile
+            <% } %></p>
+              <div class="w3-row">
+                <div class="w3-col m8 s12">
+                  <p><% if (fconnected==true) { %>
+                    <% var link = 'https://127.0.0.1:8000/details?xid='+xid; %>
+                    <% var link2 = "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2F127.0.0.1%2F8000%2Fdetails?xid="+xid+"%3A8000%2F&amp;src=sdkpreparse"; %>
+                    <div class="fb-share-button" data-href= <%= link %> data-layout="button" data-size="large"><a target="_blank" href=<%= link2%> class="fb-xfbml-parse-ignore">Share</a></div><br>
+                
+                <%}%></p>
+                </div>
+                <div class="w3-col m4 w3-hide-small">
+                  <p><span class="w3-padding-large w3-right"><b>Reviews  </b> <span class="w3-tag"><%= reviews != "" ? n : 0 %></span></span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <hr>
+        
+          <!-- Blog entry -->
+          <div class="w3-card-4 w3-margin w3-white">
+            <div style="width: 100%" id="mapContainer"></div>
         <script>
           // Initialize the platform object:
           var platform = new H.service.Platform({
@@ -98,56 +233,109 @@
             map.addObject(marker);
             map.setCenter(coords);
         </script>
-        <li><h3><b><i>Meteo:</li> </b></h3></i>
-        <%= info_weather %>
-        <img src= <%=icon_url %> </ul>
+            <div class="w3-container">
+              <h3><b>Map</b></h3>
+              <h5>Exact position </h5>
+            </div>
         
+            
+          </div>     
 
+        <!-- END BLOG ENTRIES -->
+        </div>
+        
+        <!-- Introduction menu -->
+        <div class="w3-col l4">
+          <!-- About Card -->
+          <div class="w3-card w3-margin w3-margin-top w3-white">
+            <img src= <%=icon_url %> style="width:50%; display: block; margin: auto;">
+            <div class="w3-container w3-white">
+              <h4><b>Weather</b></h4>
+              <p><%= info_weather %>
+        </p>
+            </div>
+          </div><hr>
+          
+          <!-- Posts -->
+          <div class="w3-card w3-margin">
+            <div class="w3-container w3-padding">
+              <h4>Reviews</h4>
+            </div>
+            <ul class="w3-ul  w3-white">
+                <% if (reviews!="") { %>
+                    <% for(var i=0; i<n; i++) { %> <li class="w3-padding-16 "style="height:20%; overflow-wrap: break-word; height:auto;">
+                        <% if (reviews[i].photo!="") { %>
+                            <% src="data:image/png;base64,"+reviews[i].photo; %>
+                             <img src= <%= src %> class="w3-left w3-margin-right" style="width:50%">
+                        <% } %>
+                        <span class="w3-large"><%=reviews[i].name%>, in date:  </span><span class="w3-opacity"><%=reviews[i].date%></span>
+                        <% if(reviews[i].rating) {  %>
+                          <% for(var j=0; j<5;j++) {  %> 
+                            <% if(j<reviews[i].rating) {  %>  <span class="fa fa-star" style="color:orange"></span> <% } else { %> <span class="fa fa-star"></span><% } %>
+                          <% } %>  
+                        <% } %><br><br>
+                        <span> <%=reviews[i].text %></span>
+                    <% } %>
+                <% } else {  %>
+                    <li class="w3-padding-16">
+                        <span class="w3-large">No reviews!!</span><br>
+                    </li>
+                <% } %>
+            </ul>
+          </div>
+          <hr> 
+         
+          <!-- Labels / tags -->
+          <div class="w3-card w3-margin">
+            <div class="w3-container w3-padding">
+              <h4>Write your own review</h4>
+            </div>
+            <div class="w3-container w3-white">
+            <p>Scrivi la tua recensione:
+                <br><form action="https://localhost:8000/reviews" method="POST">
+                  <span class="fa fa-star fa-sta" style="color:orange"></span>
+                  <span class="fa fa-star fa-sta"></span>
+                  <span class="fa fa-star fa-sta"></span>
+                  <span class="fa fa-star fa-sta"></span>
+                  <span class="fa fa-star fa-sta"></span>
 
-        <h3><li><b><i>Recensioni:</b></i></li></h3>
-            <% if (reviews!="") { %>
-                <% for(var i=0; i<n ;i++) {%><li>
-                    Recensione numero <%= i+1%>:<br>
-                    Data:<%=reviews[i].date%><br> Da <%=reviews[i].name%>: <%=reviews[i].text %><% if (reviews[i].photo!="") { %>
-                        <br><% src="data:image/png;base64,"+reviews[i].photo; %>
-                        Foto: <img src= <%= src %> width="200" height="200"></li>
-                    <% } %><br>
+                <% if (photo!=""){ %>
+                    Immagine aggiunta:<br>
+                    <img src= <%= photo %> width="200" height="200"><br>
+                    <input type="hidden" id="baseUrl" name="baseUrl" value=<%=photo %>>
+                <% } else{ %>
+                    <input type="hidden" id="baseUrl" name="baseUrl" value=''>
+                <% } %>
+                    <input type="hidden" id="place" name="place" value= <%= nome %>>
+                    <input type="hidden" id="xid" name="xid" value= <%= xid %>>
+                    <input type="hidden" id="rating" name="rating" value= "1">
+                    <textarea name="rev" style="resize:none" cols="40" rows="6" placeholder="Add a review"></textarea><br><br>
+                    <input class="mb-3" type="submit" value="Condividi" size="10" onclick="sendMessage()">
+                </form>
+            </p>
+            <p>Vuoi condividere anche una foto con Google Photos?
+                <% if (!gconnected){ %>
+                    <br>Prima devi collegarti però!!</p>
+                    <% var urii = "https://localhost:8000/googlelogin"; %>
+                    <a href=<%=urii %> > <button style="border: 2px solid black; ">Collegati con google</button></a><br><br>
+                <% } else { %></p>
+                     <% var linkgoogle = "https://localhost:8000/googlephotosapi?xid="+ xid; %>
+                    <a href= <%= linkgoogle %>> <button value="Google Photos" style="border: 2px solid black; ">Allega Google Photo</button></a><br><br>
                     
                 <% } %>
-            <% } %></ul>
-
-            <% var nome = encodeURI(info.name) %>
-            <li>Scrivi la tua recensione:
-            <br><form action="https://localhost:8000/reviews" method="POST">
-            <% if (photo!=""){ %>
-                Immagine aggiunta:<br>
-                <img src= <%= photo %> width="200" height="200"><br>
-                <input type="hidden" id="baseUrl" name="baseUrl" value=<%=photo %>>
-            <% } else{ %>
-                <input type="hidden" id="baseUrl" name="baseUrl" value=''>
-            <% } %>
-                <input type="hidden" id="place" name="place" value= <%= nome %>>
-                <input type="hidden" id="xid" name="xid" value= <%= xid %>>
-                <textarea name="rev" style="resize:none" cols="30" rows="6" placeholder="Add a review"></textarea><br>
-                <input class="mb-3" type="submit" value="Condividi" size="10" onclick="sendMessage()">
-            </form>
-                <p>Vuoi condividere anche una foto con Google Photos?
-                    <% if (!gconnected){ %>
-                        <br>Prima devi collegarti però!!</p>
-                        <% var urii = "https://localhost:8000/googlelogin"; %>
-                        <a href=<%=urii %>><button class="mb-3">Collegati con google</button></a><br>
-                    <% } else { %></p>
-                         <% var linkgoogle = "https://localhost:8000/googlephotosapi?xid="+ xid; %>
-                        <a href= <%= linkgoogle %>><button class="mb-3" value="Google Photos">Allega Google Photo</button></a><br>
-                        
-                    <% } %>
-    
-    <% if (fconnected==true) { %>
-        <p>Condividi questo posto con i tuoi amici</p>
-        <% var link = 'https://127.0.0.1:8000/details?xid='+xid; %>
-        <% var link2 = "https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2F127.0.0.1%2F8000%2Fdetails?xid="+xid+"%3A8000%2F&amp;src=sdkpreparse"; %>
-        <div class="fb-share-button" data-href= <%= link %> data-layout="button" data-size="large"><a target="_blank" href=<%= link2%> class="fb-xfbml-parse-ignore">Share</a></div><br>
-    
-    <%}%>
-    <br><a href= "https://localhost:8000/home"><button class="mb-3" value="submit">Torna alla home</button></a><br></li></ul>
+                
+            </div>
+          </div>
+          
+        <!-- END Introduction Menu -->
+        </div>
+        
+        <!-- END GRID -->
+        </div><br>
+        
+        <!-- END w3-content -->
+        </div>
+        
+       
+</body>
 </html>

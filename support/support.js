@@ -51,7 +51,7 @@ app.post('/login', (req, res) => {
   username = req.body.username;
   password = req.body.password;
   request({
-    url: 'http://admin:admin@couchdb:5984/customer-care/_all_docs?include_docs=true&limit=100',
+    url: 'http://admin:admin@couchdb:5984/support/_all_docs?include_docs=true&limit=100',
     method: 'GET',
     headers: {
       'content-type': 'application/json'

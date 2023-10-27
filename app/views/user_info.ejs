@@ -6,90 +6,420 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width initial-scale=1.0"/>
     <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Icons font CSS-->
+   <link href="material-design-iconic-font.min.css" rel="stylesheet" >
+   <link href="font-awesome.min.css" rel="stylesheet" >
+   <link href="nav.css" rel="stylesheet">
+   <!-- Font special for pages-->
+   <link href="https://fonts.googleapis.com/css?family=Roboto:100,100i,300,300i,400,400i,500,500i,700,700i,900,900i" rel="stylesheet">
+
+   <!-- Vendor CSS-->
+   <link href="select2.min.css" rel="stylesheet" >
+   <link href="daterangepicker.css" rel="stylesheet" >
+
+   <!-- Main CSS-->
+   <link href="main.css" rel="stylesheet" >
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style type="text/css">
+    	body{
+    color: #6c757d;
+    background-color: #f5f6f8;
+    
+}
+.card-box {
+    background-color: #fff;
+    background-clip: border-box;
+    border: 1px solid #e7eaed;
+    padding: 1.5rem;
+    margin-bottom: 24px;
+    border-radius: .25rem;
+}
+.avatar-xl {
+    height: 6rem;
+    width: 6rem;
+}
+.rounded-circle {
+    border-radius: 50%!important;
+}
+.nav-pills .nav-link.active, .nav-pills .show>.nav-link {
+    color: #fff;
+    background-color: #1abc9c;
+}
+.nav-pills .nav-link {
+    border-radius: .25rem;
+}
+.navtab-bg li>a {
+    background-color: #f7f7f7;
+    margin: 0 5px;
+}
+.nav-pills>li>a, .nav-tabs>li>a {
+    color: #6c757d;
+    font-weight: 600;
+}
+.mb-4, .my-4 {
+    margin-bottom: 2.25rem!important;
+}
+.tab-content {
+    padding: 20px 0 0 0;
+}
+.progress-sm {
+    height: 5px;
+}
+.m-0 {
+    margin: 0!important;
+}
+.table .thead-light th {
+    color: #6c757d;
+    background-color: #f1f5f7;
+    border-color: #dee2e6;
+}
+.social-list-item {
+    height: 2rem;
+    width: 2rem;
+    line-height: calc(2rem - 4px);
+    display: block;
+    border: 2px solid #adb5bd;
+    border-radius: 50%;
+    color: #adb5bd;
+}
+
+.text-purple {
+    color: #6559cc!important;
+}
+.border-purple {
+    border-color: #6559cc!important;
+}
+
+.timeline {
+    margin-bottom: 50px;
+    position: relative;
+}
+.timeline:before {
+    background-color: #dee2e6;
+    bottom: 0;
+    content: "";
+    left: 50%;
+    position: absolute;
+    top: 30px;
+    width: 2px;
+    z-index: 0;
+}
+.timeline .time-show {
+    margin-bottom: 30px;
+    margin-top: 30px;
+    position: relative;
+}
+.timeline .timeline-box {
+    background: #fff;
+    display: block;
+    margin: 15px 0;
+    position: relative;
+    padding: 20px;
+}
+.timeline .timeline-album {
+    margin-top: 12px;
+}
+.timeline .timeline-album a {
+    display: inline-block;
+    margin-right: 5px;
+}
+.timeline .timeline-album img {
+    height: 36px;
+    width: auto;
+    border-radius: 3px;
+}
+@media (min-width: 768px) {
+    .timeline .time-show {
+        margin-right: -69px;
+        text-align: right;
+    }
+    .timeline .timeline-box {
+        margin-left: 45px;
+    }
+    .timeline .timeline-icon {
+        background: #dee2e6;
+        border-radius: 50%;
+        display: block;
+        height: 20px;
+        left: -54px;
+        margin-top: -10px;
+        position: absolute;
+        text-align: center;
+        top: 50%;
+        width: 20px;
+    }
+    .timeline .timeline-icon i {
+        color: #98a6ad;
+        font-size: 13px;
+        position: absolute;
+        left: 4px;
+    }
+    .timeline .timeline-desk {
+        display: table-cell;
+        vertical-align: top;
+        width: 50%;
+    }
+    .timeline-item {
+        display: table-row;
+    }
+    .timeline-item:before {
+        content: "";
+        display: block;
+        width: 50%;
+    }
+    .timeline-item .timeline-desk .arrow {
+        border-bottom: 12px solid transparent;
+        border-right: 12px solid #fff !important;
+        border-top: 12px solid transparent;
+        display: block;
+        height: 0;
+        left: -12px;
+        margin-top: -12px;
+        position: absolute;
+        top: 50%;
+        width: 0;
+    }
+    .timeline-item.timeline-item-left:after {
+        content: "";
+        display: block;
+        width: 50%;
+    }
+    .timeline-item.timeline-item-left .timeline-desk .arrow-alt {
+        border-bottom: 12px solid transparent;
+        border-left: 12px solid #fff !important;
+        border-top: 12px solid transparent;
+        display: block;
+        height: 0;
+        left: auto;
+        margin-top: -12px;
+        position: absolute;
+        right: -12px;
+        top: 50%;
+        width: 0;
+    }
+    .timeline-item.timeline-item-left .timeline-desk .album {
+        float: right;
+        margin-top: 20px;
+    }
+    .timeline-item.timeline-item-left .timeline-desk .album a {
+        float: right;
+        margin-left: 5px;
+    }
+    .timeline-item.timeline-item-left .timeline-icon {
+        left: auto;
+        right: -56px;
+    }
+    .timeline-item.timeline-item-left:before {
+        display: none;
+    }
+    .timeline-item.timeline-item-left .timeline-box {
+        margin-right: 45px;
+        margin-left: 0;
+        text-align: right;
+    }
+}
+@media (max-width: 767.98px) {
+    .timeline .time-show {
+        text-align: center;
+        position: relative;
+    }
+    .timeline .timeline-icon {
+        display: none;
+    }
+}
+.timeline-sm {
+    padding-left: 110px;
+}
+.timeline-sm .timeline-sm-item {
+    position: relative;
+    padding-bottom: 20px;
+    padding-left: 40px;
+    border-left: 2px solid #dee2e6;
+}
+.timeline-sm .timeline-sm-item:after {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 3px;
+    left: -7px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #1abc9c;
+}
+.timeline-sm .timeline-sm-item .timeline-sm-date {
+    position: absolute;
+    left: -104px;
+}
+@media (max-width: 420px) {
+    .timeline-sm {
+        padding-left: 0;
+    }
+    .timeline-sm .timeline-sm-date {
+        position: relative !important;
+        display: block;
+        left: 0 !important;
+        margin-bottom: 10px;
+    }
+}
+
+
+    </style>
 </head>
 <body>
-    <script>
-    </script>
-    <h1>Ecco le tue informazioni</h1>
-    
-    
-    <ul>
-        <li>Username: <%= data.username%></li>
-        <li>Nome: <%= data.name%></li>
-        <li>Cognome: <%= data.surname%></li>
-        <li>E-mail : <%= data.email%></li>
-        <%if(data.picture.url!=undefined){ var photourl= data.picture.url ; %>
-        <li>Picture: <img src=<%= photourl  %> width=<%=data.picture.width%> height=<%=data.picture.height%>>
-        <%}%>
-    </ul>
-        <% if(data.reviews.length>0){ %>
-            <h2>Le tue recensioni:</h2><br>
-            <ul>
-            <% for(var i=0;i < data.reviews.length; i++) {%>
-                <li>Posto: <%= data.reviews[i].Posto%> </li>
-                <li>Testo: <%= data.reviews[i].text%></li>
-                <li>Data: <%= data.reviews[i].date%></li>
-                <% if (data.reviews[i].photo!="") { %>
-                    <% src="data:image/png;base64,"+data.reviews[i].photo; %>
-                    <li><img src= <%= src %> width="200" height="200"></li> 
-                <% } %> 
-                <form name="myForm" method="POST" action="https://localhost:8000/elimina">
-
-                    <input type="hidden" id="codice" name="codice" value=<%=data.reviews[i].codice %>>
-                    <input type="hidden" id="xid" name="xid" value=<%=data.reviews[i].xid %>>
-                    <input class="mb-3" type="submit" value="Elimina">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="light" style="background-color: rgba(97, 160, 189, 0.5);  ">
+        <div class="container-fluid"  >
+          <a class="navbar-brand" href="#">PlaceAdvisor</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarColor03">
+            <ul class="navbar-nav me-auto">
+              <li class="nav-item">
+                <a class="nav-link" href="https://localhost:8000/home">Home
+                  
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="#">Your profile<span class="visually-hidden">(current)</span></a>
                 
-                  </form>
-                <h2>--------------------------------------</h2>
-            <%}%>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="https://localhost:8000/city_info">Insights</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">About</a>
+              </li>
             </ul>
-        <%} else {%>
-            <h2>Non hai effettuato nessuna recensione ancora</h2>
-        <%}%>
-
-        <% if(data.feedbacks.length>0){ %>
-            <h2>I tuoi feedback:</h2><br>
-            <ul>
-            <% for(var i=0;i < data.feedbacks.length; i++) {%>
-                <li>Testo: <%= data.feedbacks[i].text%></li>
-                <% if (data.feedbacks[i].photo.length>1) { %>
-                    <% src1="data:image/png;base64,"+data.feedbacks[i].photo; %>
-                    <li><img src= <%= src1 %> width="200" height="200"></li> 
-                <% } %>
-                <% if(data.feedbacks[i].read==true){%>
-                    <h4>Questo feedback è stato letto dall'assistenza clienti</h4> 
-                <%}else {%>
-                    <h4>Questo feedback ancora non è stato letto</h4> 
-                <%}%>
-                <h2>--------------------------------------</h2>
-            <%}%>
-            </ul>
-        <%} else {%>
-            <h2>Non hai inviato nessun feedback ancora</h2>
-        <%}%>
-
-        <a href= "https://localhost:8000/home">
-            <button class="mb-3" type= 'button'>Torna alla homepage</button>
-        </a>
-        
-
-    <% } else {%>
-        Sembra che tu non sia collegato! :( Torna alla homepage! 
-        <a href= "https://localhost:8000/">
-            <button class="mb-3" type= 'button'>OK :(</button>
-          </a>
-    <% } %>
+            <form class="d-flex">
+              <h3 class="navbar-brand">Ciao, <%=data.username%></h3>
+              <a class="nav-link" href="https://localhost:8000/logout" style="margin-top: 4%;">Logout</a>
+            
+            </form>
+          </div>
+        </div>
+      </nav>
     
-    <% if(check==false){ %>
-        <h3>Mi dispiace, sembra ci sia un errore nell'eliminazione del tuo account, riprova</h3>
-        <a href="https://localhost:8000/delete_account">
-            <button class="mb-3" type="button">Elimina account</button>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/MaterialDesign-Webfont/5.3.45/css/materialdesignicons.css" integrity="sha256-NAxhqDvtY0l4xn+YVa6WjAcmd94NNfttjNsDmNatFVc=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.1/css/all.min.css" integrity="sha256-2XFplPlrFClt0bIdPgpz8H7ojnk10H69xRqd9+uTShA=" crossorigin="anonymous" />
+    <div class="container" >
+    <div class="row">
+    <div class="col-lg-4 col-xl-4" style="margin-left: 50%; margin:auto; margin-top:5%">
+    <div class="card-box text-center" >
+    <%if(data.picture.url!=undefined){ var photourl= data.picture.url ; %>
+        <img src=<%= photourl  %> width=<%=data.picture.width%> height=<%=data.picture.height%> class="rounded-circle avatar-xl img-thumbnail" alt="profile-image">
+    <%}%>
+    <h4 class="mb-0"><%= data.name%> <%= data.surname%> </h4>
+    <p class="text-muted"> @<%= data.username%></p>
+    <a href="https://localhost:8000/chat"><button type="button" class="btn btn-success btn-xs waves-effect mb-2 waves-light">Chat with Support</button></a>
+    <a href="https://localhost:8000/delete_account"><button type="button" class="btn btn-danger btn-xs waves-effect mb-2 waves-light">Delete your account</button></a>
+    <div class="text-left mt-3">
+    <p class="text-muted mb-2 font-13"><strong>First Name :</strong> <span class="ml-2"><%= data.name%> </span></p>
+    <p class="text-muted mb-2 font-13"><strong>Second Name :</strong><span class="ml-2"><%= data.surname%> </span></p>
+    <p class="text-muted mb-2 font-13"><strong>Email :</strong> <span class="ml-2 "><%= data.email%></span></p>
+    </div>
+    <ul class="social-list list-inline mt-3 mb-0">
+    <li class="list-inline-item">
+    <a href="javascript: void(0);" class="social-list-item border-purple text-purple"><i class="fab fa-facebook"></i></a>
+    </li>
+    
+    </ul>
+    </div> 
+   
+    
+    </div>
+    </div> 
+    </div> 
+    <div class="col-lg-8 col-xl-8" style="margin-left: 50%; margin:auto">
+    <div class="card-box" >
+    <ul class="nav nav-pills navtab-bg ">
+    <li class="nav-item">
+    <a href="#reviews" data-toggle="tab" aria-expanded="true" class="nav-link ml-0 active">
+    <i class="mdi mdi-face-profile mr-1"></i>My reviews
+    </a>
+    </li>
+    <li class="nav-item">
+        <a href="#feedbacks" data-toggle="tab" aria-expanded="false" class="nav-link">
+        <i class="mdi mdi-settings-outline mr-1"></i>Feedbacks
         </a>
-    <% } else {%>
-        <a href="https://localhost:8000/delete_account">
-            <button class="mb-3" type="button">Elimina account</button>
-        </a>
-    <% } %>
+        </li>
+        </ul>
+        <div class="tab-content">
+        <div class="tab-pane show active" id="reviews">
 
+        <% if(data.reviews.length>0){ %> 
+            <ul class="list-unstyled timeline-sm">
+            <% for(var i=0;i < data.reviews.length; i++) {%>
+            <li class="timeline-sm-item">
+            <span class="timeline-sm-date"><%= data.reviews[i].date%></span>
+            
+            <h5 class="mt-0 mb-1"><%= data.reviews[i].Posto%><% if(data.reviews[i].rating) {  %>
+                <% for(var j=0; j<5;j++) {  %> 
+                  <% if(j<data.reviews[i].rating) {  %>  <span class="fa fa-star" style="color:orange"></span> <% } else { %> <span class="fa fa-star"></span><% } %>
+                <% } %>  
+              <% } %></h5>
+            
+            <p class="text-muted mt-2" style="height:20%; overflow-wrap: break-word; height:auto;"> <%= data.reviews[i].text%></p>
+                <% if (data.reviews[i].photo!="") { %>
+                <% src="data:image/png;base64,"+data.reviews[i].photo; %>
+                <img src= <%= src %> width="200" height="200">
+                <% } %> 
+            </li>
+        <form name="myForm" method="POST" action="https://localhost:8000/elimina">
+
+            <input type="hidden" id="codice" name="codice" value=<%=data.reviews[i].codice %>>
+            <input type="hidden" id="xid" name="xid" value=<%=data.reviews[i].xid %>>
+            <input class="mb-3" type="submit" value="Elimina">
+        
+        </form>
+     
+            <%}%>
+  
+        </ul>
+
+        <% } else {%>
+            <h2>No reviews!!</h2>
+        <%}%>
+        
+        </div>
+        
+        <div class="tab-pane" id="feedbacks">
+            <% if(data.feedbacks.length>0){ %>
+                <h2>Your feedbacks:</h2><br>
+                <ul>
+                <% for(var i=0;i < data.feedbacks.length; i++) {%>
+                    <li style="height:20%; overflow-wrap: break-word; height:auto;">Text: <%= data.feedbacks[i].text%></li>
+                    <% if (data.feedbacks[i].photo.length>1) { %>
+                        <% src1="data:image/png;base64,"+data.feedbacks[i].photo; %>
+                        <img src= <%= src1 %> width="200" height="200">
+                    <% } %>
+                    <% if(data.feedbacks[i].read==true){%>
+                        <h4>Thank you! We read it.</h4> 
+                    <%}else {%>
+                        <h4>No one has read it yet.</h4> 
+                    <%}%>
+                    <h2>--------------------------------------</h2>
+                <%}%>
+                </ul>
+            <%} else {%>
+                <h2>Send us a feedback!</h2>
+            <%}%>
+
+        </div>
+        
+        </div> 
+        </div> 
+        </div> 
+        </div>
+        </div>
+        <% } %>
+        <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.bundle.min.js"></script>
+        <script type="text/javascript">
+           
+        </script>
+        </body>
     
 </html>

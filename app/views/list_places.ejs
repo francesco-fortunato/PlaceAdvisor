@@ -4,19 +4,29 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width initial-scale=1.0"/>
-    <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+    <link rel="stylesheet"  href="list.css"/>
 </head>
 <body>
+    <article class="leaderboard">
+        <header>
+      
+         
+          <h1 class="leaderboard__title"><span class="leaderboard__title--top">PlaceAdvisor</span><span class="leaderboard__title--bottom"><%= cat %> </span></h1>
+        </header>
+        <main class="leaderboard__profiles">
+        <% for(var i=0; i<numero; i++) {%>
+            <% if(data[i].properties.name.length > 0) {%>
+                <% var uri = "https://localhost:8000/details?xid="+data[i].properties.xid; %>
+                 <article class="leaderboard__profile">
+                    <a style="text-decoration: none;" href=<%=uri %> <span class="leaderboard__name"><%= data[i].properties.name %></span> </a>
+                <span class="leaderboard__value"><%= (data[i].properties.dist/1000).toFixed(1)%><span>KM</span></span>
+                </article>
+            <% } %>
+        <% } %>
+        </main>
+      </div>
     <script>
     </script>
-    <h1 class="mb-3">Primi 100 risultati per <%= cat %> in <%= citta %> </h1>
-    <ul>
-    <% for(var i=0; i<numero; i++) {%>
-        <% if(data[i].properties.name.length > 0) {%>    
-            <% var uri = "https://localhost:8000/details?xid="+data[i].properties.xid; %>
-            <li><%= data[i].properties.name %></li><a href=<%=uri %> <li>Dettagli</li> </a>
-        <% } %>
-    <% } %>
-    </ul>
+
      
 </html>

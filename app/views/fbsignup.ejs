@@ -4,8 +4,86 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width initial-scale=1.0"/>
-    <link rel="stylesheet" type="text/css" href="bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+.card {
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  margin: auto;
+  text-align: center;
+  font-family: arial;
+  background-color: transparent;
+   transition: background-color 0.3s ease; /* Add a smooth transition effect */
+   border-radius: 15px;
+}
+
+.title {
+  color: grey;
+  font-size: 18px;
+}
+
+button {
+  border: none;
+  outline: 0;
+  display: inline-block;
+  padding: 8px;
+  color: white;
+  background-color: #000;
+  text-align: center;
+  cursor: pointer;
+  width: 100%;
+  font-size: 18px;
+}
+
+a {
+  text-decoration: none;
+  font-size: 100%;
+  color: black;
+}
+
+
+body{
+    background-image: url('tip_17.jpg');
+    background-size: cover;
+
+}
+.card:hover {
+    background-color: rgba(203, 200, 200, 0.5); /* Change the color and opacity when hovered */
+}
+
+</style>
 </head>
+<body>
+
+    
+    
+    
+    <div class="card" style="margin-top: 10%; margin-right: 60%; transition: background-color 0.3s ease; ">
+        <h2> </h2>
+        <img src= <%=  "https://graph.facebook.com/"+ data.id +"/picture?type=large"  %> widht=auto height=auto>
+      <h1> <%= data.first_name %> </h1>
+      <h1> <%= data.last_name %></h1>
+      <% email = data.email.replace('\u0040', '@'); %>
+
+      <a >Email: <%= email %></a>
+      
+      
+      <form method="POST" action="https://localhost:8000/fbsignup">
+      <p><input class="mb-3" type="text" name="username" size="20" placeholder="Username for registration" required></p>
+      <input class="mb-3" type="submit" value="Conferma" name="conferma">
+      </form>
+      <%if (check==true){%>
+        <h3 class="mb-3">L'username <%=username%> non è disponibile, scegline un altro :(</h3>
+       <%}%>
+    </div>
+    
+    </body>
+
+
+
+
+
+<!-- 
 <body>
    
     <h1>Ciao, e grazie per aver effettuato l'accesso al nostro sito usando Facebook, ecco il tuo token: </h1>
@@ -39,3 +117,4 @@
        <%}%>
        
 </html>
+       -->

@@ -908,6 +908,7 @@ app.get('/fbsignup', authenticateToken, function(req,res){
     res.redirect('/home')
   }
   else{
+    console.log(fbinfo)
     res.render('fbsignup', {fconnected: true,check: false, ftoken:ftoken, data: fbinfo});
   }
   
@@ -942,9 +943,9 @@ app.post('/fbsignup', authenticateToken, function (req,res){
           "email": payload.info.email,
           "username": username,
           "picture": {
-            "url": payload.info.picture.data.url,
-            "height": payload.info.picture.data.height,
-            "width": payload.info.picture.data.width
+            "url": "https://graph.facebook.com/"+ payload.info.id +"/picture?type=large",
+            "height": 50,
+            "width": 50
           },
           "reviews": [],
           "feedbacks":[]
@@ -1001,6 +1002,7 @@ app.get('/info', authenticateToken, function(req, res){
   
   request.get('http://admin:admin@couchdb:5984/users/'+email, function callback(error, response, body){
     var data = JSON.parse(body)
+    console.log(data)
     res.render('user_info', {data: data, check:true});
   })
 })
@@ -1195,7 +1197,7 @@ app.get('/details', authenticateToken, function(req,res){
         //console.log(response.statusCode, body);
         infodb = JSON.parse(body);
         var weather = {
-          url: 'https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+process.env.OpenWeatherMap_KEY+'&lang=it'
+          url: 'https://api.openweathermap.org/data/2.5/weather?lat='+lat+'&lon='+lon+'&appid='+process.env.OpenWeatherMap_KEY+'&lang=en'
         }
         request.get(weather, function callback(error,response, body){
           info_weather=JSON.parse(body);
@@ -1506,10 +1508,31 @@ app.get('/nav.css', function (req, res) {
   res.sendFile(filePath);
 });
 
+app.get('/bootstrap.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/bootstrap.css');
+  res.sendFile(filePath);
+});
+
+app.get('/nav.css', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/style/nav.css');
+  res.sendFile(filePath);
+});
+
 app.get('/piazza.jpg', function (req, res) {
   const filePath = path.resolve(__dirname, 'views/img/piazza.jpg');
   res.sendFile(filePath);
 });
+
+app.get('/tip_17.jpg', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/img/tip_17.jpg');
+  res.sendFile(filePath);
+});
+
+app.get('/smartphone.jpg', function (req, res) {
+  const filePath = path.resolve(__dirname, 'views/img/smartphone.jpg');
+  res.sendFile(filePath);
+});
+
 
 //*************************************************End Style**************************************************/
 
@@ -1647,7 +1670,8 @@ function updateUserReviews(req,res, codice){        //Funzione che aggiorna le r
                 "name": req.token.info.info.username,
                 "text": req.body.rev,
                 "date": strdate,
-                "photo": encoded
+                "photo": encoded,
+                "rating": parseInt(req.body.rating)
               }
               info.reviews.push(item)
               request({
@@ -1679,7 +1703,8 @@ function updateUserReviews(req,res, codice){        //Funzione che aggiorna le r
             "name": req.token.info.info.username,
             "text": req.body.rev,
             "date": strdate,
-            "photo": '',
+            "photo": '',                
+            "rating": parseInt(req.body.rating)
           }
         
           info.reviews.push(item)
@@ -1708,6 +1733,7 @@ function newReview(req,res, codice){          //Funzione che aggiunge una recens
   payload=req.token.info;
   data = new Date();
   mese=data.getMonth() +1;
+  rating=parseInt(req.body.rating)
   strdate = data.getDate()+"/"+mese+"/"+data.getFullYear()
   //console.log("body funzionenewreview: %j", req.body)
   if (req.body.baseUrl!=''){
@@ -1717,13 +1743,15 @@ function newReview(req,res, codice){          //Funzione che aggiunge una recens
             //console.log(response); // "iVBORw0KGgoAAAANSwCAIA..."
             encoded=response;
             item={
+              "place_name": decodeURI(req.body.place),
               "reviews": [
                 {
                   "codice": codice,
                   "name": payload.info.username,
                   "text": req.body.rev,
                   "date": strdate,
-                  "photo": encoded
+                  "photo": encoded,
+                  "rating":rating
                 }
               ]
             }
@@ -1753,13 +1781,15 @@ function newReview(req,res, codice){          //Funzione che aggiunge una recens
   } 
   else{
     item={
+      "place_name": decodeURI(req.body.place),
       "reviews": [
         {
           "codice": codice,
           "name": payload.info.username, //req.token.info.info.username,
           "text": req.body.rev,
           "date": strdate,
-          "photo": ''
+          "photo": '',
+          "rating": rating
         }
       ]
     }
@@ -1789,6 +1819,7 @@ function updateReview(req,res,codice){            //Funzione che aggiorna le rec
   //console.log("XID_ : "+xid)
   data = new Date();
   mese=data.getMonth() +1;
+  rating=parseInt(req.body.rating)
   strdate = data.getDate()+"/"+mese+"/"+data.getFullYear()
   //console.log("body funzioneupdatereview: %j", req.body)
   if (req.body.baseUrl!=''){ 
@@ -1802,7 +1833,8 @@ function updateReview(req,res,codice){            //Funzione che aggiorna le rec
           "name": payload.info.username,
           "text": req.body.rev,
           "date": strdate,
-          "photo": encoded    //setto la photo con il valore di response
+          "photo": encoded,    //setto la photo con il valore di response
+          "rating": rating
         }
         infodb.reviews.push(newItem);
 
@@ -1837,7 +1869,8 @@ function updateReview(req,res,codice){            //Funzione che aggiorna le rec
       "name": payload.info.username,
       "text": req.body.rev,
       "date": strdate,
-      "photo": ''
+      "photo": '',
+      "rating": rating
     }
       
     
@@ -1882,7 +1915,7 @@ function deletereviewfromUser(num, email, xid){             //Funzione per elimi
           if (info.reviews[h].codice==num){
             info.reviews.splice(h, 1)
           } 
-          if ((h==(info.reviews.length-1)) && (infoinfo.reviews[h].codice==num)){
+          if ((h==(info.reviews.length-1)) && (info.reviews[h].codice==num)){
             return res.redirect('/error?statusCode=401')
           }
         }}
