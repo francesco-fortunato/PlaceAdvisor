@@ -34,3 +34,10 @@ Fri Oct 27 2023 17:42:42 GMT+0200 (Ora legale dell’Europa centrale): È stato 
 Città: Roma, Categoria: interesting_places, Raggio: 8
 Fri Oct 27 2023 20:54:46 GMT+0200 (Ora legale dell’Europa centrale): È stato inviato un feedback
 Fri Oct 27 2023 20:57:07 GMT+0200 (Ora legale dell’Europa centrale): È stato inviato un feedback
+Sun Oct 29 2023 11:00:08 GMT+0100 (Ora standard dell’Europa centrale): È stato cercato:
+Città: Castrovillari, Categoria: interesting_places, Raggio: 8
+Sun Oct 29 2023 11:01:05 GMT+0100 (Ora standard dell’Europa centrale): È stato recensito W280759858rating: 5
+Sun Oct 29 2023 11:08:03 GMT+0100 (Ora standard dell’Europa centrale): È stato cercato:
+Città: Castrovillari, Categoria: interesting_places, Raggio: 8
+Sun Oct 29 2023 11:09:40 GMT+0100 (Ora standard dell’Europa centrale): È stato cercato:
+Città: Castrovillari, Categoria: interesting_places, Raggio: 8
