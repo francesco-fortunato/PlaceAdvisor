@@ -1,4 +1,46 @@
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
-\contentsline {section}{\numberline {2}Development}{3}{section.2}%
-\contentsline {section}{\numberline {3}Conclusions}{4}{section.3}%
-\contentsline {section}{References}{5}{section*.2}%
+\contentsline {section}{\numberline {2}User Requirements}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Introduction}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}User Authentication and Registration}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Integration with Google Photos}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}User Profiles}{3}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Points of Interest Discovery}{3}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Detailed Place Information}{4}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Chat with Support}{4}{subsection.2.7}%
+\contentsline {subsection}{\numberline {2.8}User Feedback Feature}{4}{subsection.2.8}%
+\contentsline {subsection}{\numberline {2.9}Kibana and Elasticsearch Dashboard}{4}{subsection.2.9}%
+\contentsline {section}{\numberline {3}User Stories}{6}{section.3}%
+\contentsline {section}{\numberline {4}Function Points}{12}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Complexity Tables for Function Points}{12}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Internal Logical Files (ILF)}{13}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}External Interface Files (EIF)}{13}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Calculation of Function Points}{13}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Total Unadjusted Function Points (UFP)}{15}{subsection.4.5}%
+\contentsline {section}{\numberline {5}REST Interface}{16}{section.5}%
+\contentsline {subsection}{\numberline {5.1}API Tags}{16}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Security Schemes}{16}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}API Components}{17}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}API Endpoints}{17}{subsection.5.4}%
+\contentsline {paragraph}{Root Resource (/)}{17}{section*.16}%
+\contentsline {paragraph}{Home Resource (/home)}{17}{section*.17}%
+\contentsline {paragraph}{User Resource (/info)}{17}{section*.18}%
+\contentsline {paragraph}{City Info Resource (/city\_info)}{17}{section*.19}%
+\contentsline {paragraph}{API Resource (/app)}{18}{section*.20}%
+\contentsline {paragraph}{OpenMap Resource (/openmap)}{18}{section*.21}%
+\contentsline {paragraph}{Details Resource (/details)}{18}{section*.22}%
+\contentsline {paragraph}{Google Photos API Resource (/googlephotosapi)}{18}{section*.23}%
+\contentsline {paragraph}{Logout Resource (/logout)}{18}{section*.24}%
+\contentsline {paragraph}{Reviews Resource (/reviews)}{19}{section*.25}%
+\contentsline {paragraph}{Elimina Resource (/elimina)}{19}{section*.26}%
+\contentsline {paragraph}{New Feedback Resource (/newfeedback)}{19}{section*.27}%
+\contentsline {paragraph}{Feedback Resource (/feedback)}{19}{section*.28}%
+\contentsline {paragraph}{Refresh Token Resource (/refreshtoken)}{19}{section*.29}%
+\contentsline {paragraph}{Error Resource (/error)}{19}{section*.30}%
+\contentsline {subsection}{\numberline {5.5}API Example}{20}{subsection.5.5}%
+\contentsline {section}{\numberline {6}System Architecture}{21}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Microservices}{21}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Integration with External Services}{22}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Messaging and Communication}{22}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Data Storage and Persistence}{22}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Web Socket}{23}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Security}{23}{subsection.6.6}%

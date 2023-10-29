@@ -1,0 +1,193 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\section{REST Interface}\label{sec:rest}
+The PlaceAdvisor web application provides a RESTful API that allows users to interact with the platform programmatically. Below, we outline the available resources, their descriptions, supported HTTP methods, and required authorization.
+
+\subsection{API Tags}
+
+The API is organized into several tags, each representing a specific area or function of the application:
+
+\begin{itemize}
+  \item \textbf{Root:} Start and general information.
+  \item \textbf{User:} Obtain user information.
+  \item \textbf{Home:} Manage user access and access the primary APIs.
+  \item \textbf{APIs:} Access various APIs.
+  \item \textbf{Reviews:} Manage user reviews.
+  \item \textbf{Feedback:} Manage user feedback.
+  \item \textbf{Error:} Handling errors and providing feedback.
+  \item \textbf{Refreshtoken:} Token refresh.
+\end{itemize}
+
+\subsection{Security Schemes}
+
+The PlaceAdvisor API employs several security schemes to ensure secure access. These schemes include:
+
+\begin{itemize}
+  \item \textbf{googleOAuth:} OAuth2 authentication for Google.
+  \item \textbf{facebookOAuth:} OAuth2 authentication for Facebook.
+  \item \textbf{fbcookieAuth:} Authentication using Facebook access tokens stored in cookies.
+  \item \textbf{GoogleAccessToken:} Authentication using Google access tokens stored in cookies.
+  \item \textbf{GoogleIdToken:} Authentication using Google ID tokens stored in cookies.
+  \item \textbf{JWT:} JSON Web Token (JWT) for authentication.
+  \item \textbf{JWT\_refresh:} JWT for token refresh.
+\end{itemize}
+
+\subsection{API Components}
+
+The PlaceAdvisor API defines several data schemas to structure the data sent and received through the API. These schemas include:
+
+\begin{itemize}
+  \item \textbf{Review:} Information about user reviews.
+  \item \textbf{Feedback:} User feedback details.
+  \item \textbf{User:} User profile information, including reviews and feedback.
+  \item \textbf{Ricerca:} Parameters for search queries.
+\end{itemize}
+
+\subsection{API Endpoints}
+
+The PlaceAdvisor API is organized into various endpoints, each serving a specific purpose. Here are some of the key endpoints:
+
+\paragraph{Root Resource (/)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns the index page (index.ejs).
+  \item \textbf{POST}: Allows users to authenticate with Facebook.
+  \item \textbf{Authorization}: None for GET; Facebook OAuth for POST.
+\end{itemize}
+
+\paragraph{Home Resource (/home)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns the homepage (HTML HOMEPAGE).
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK, 403 Forbidden (User not authenticated).
+\end{itemize}
+
+\paragraph{User Resource (/info)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns user information, reviews, and feedback (HTML user\_info).
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK, 403 Forbidden (User not authenticated).
+\end{itemize}
+
+\paragraph{City Info Resource (/city\_info)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns a list of popular places in the site (city\_stat.ejs).
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK.
+\end{itemize}
+
+\paragraph{API Resource (/app)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns a list of places within a certain location, category, and radius.
+  \item \textbf{Parameters}: lat (latitude), lon (longitude), cate (category), rad (radius).
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK, 404 Not Found.
+\end{itemize}
+
+\paragraph{OpenMap Resource (/openmap)}
+
+\begin{itemize}
+  \item \textbf{POST}: Executes a search for places of interest based on city, radius, and category.
+  \item \textbf{Authorization}: JWT token required.
+\end{itemize}
+
+\paragraph{Details Resource (/details)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns details about a specific place.
+  \item \textbf{Parameters}: xid (XID of the place), baseUrl (optional photo URL).
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK, 404 Not Found.
+\end{itemize}
+
+\paragraph{Google Photos API Resource (/googlephotosapi)}
+
+\begin{itemize}
+  \item \textbf{GET}: Retrieves the user's Google Maps photos to upload to PlaceAdvisor.
+  \item \textbf{Parameters}: stato (to specify if the photo should be used for feedback) and xid (XID of the place to post the photo).
+  \item \textbf{Authorization}: JWT token required, Google OAuth cookie.
+  \item \textbf{Responses}: 200 OK, 404 Not Found.
+\end{itemize}
+
+\paragraph{Logout Resource (/logout)}
+
+\begin{itemize}
+  \item \textbf{GET}: Returns the logout page.
+  \item \textbf{POST}: Logs out the user.
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK (GET and POST).
+\end{itemize}
+
+\paragraph{Reviews Resource (/reviews)}
+
+\begin{itemize}
+  \item \textbf{POST}: Posts a review.
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK (creates or updates a review).
+\end{itemize}
+
+\paragraph{Elimina Resource (/elimina)}
+
+\begin{itemize}
+  \item \textbf{POST}: Deletes a review by code.
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK (deletes a review), 404 Not Found.
+\end{itemize}
+
+\paragraph{New Feedback Resource (/newfeedback)}
+
+\begin{itemize}
+  \item \textbf{GET}: Displays the feedback submission form.
+  \item \textbf{Parameters}: baseUrl (optional photo URL).
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK (displays the form), 403 Forbidden (token expired), 404 Not Found.
+\end{itemize}
+
+\paragraph{Feedback Resource (/feedback)}
+
+\begin{itemize}
+  \item \textbf{POST}: Submits user feedback.
+  \item \textbf{Authorization}: JWT token required.
+  \item \textbf{Responses}: 200 OK (submits feedback).
+\end{itemize}
+
+\paragraph{Refresh Token Resource (/refreshtoken)}
+
+\begin{itemize}
+  \item \textbf{GET}: Refreshes the JWT token.
+  \item \textbf{Authorization}: JWT token and refresh token required.
+\end{itemize}
+
+\paragraph{Error Resource (/error)}
+
+\begin{itemize}
+  \item \textbf{GET}: Displays an error page with a status code explanation.
+  \item \textbf{Parameters}: statusCode (error code).
+  \item \textbf{Responses}: 200 OK (displays the error page).
+\end{itemize}
+
+These endpoints facilitate various actions, including user authentication, data retrieval, and interaction with reviews and feedback.
+
+
+
+\subsection{API Example}
+
+Below is an example of an API request:
+
+\begin{lstlisting}
+GET /info
+Headers:
+  Authorization: Bearer <JWT Token>
+\end{lstlisting}
+In this example, the user requests their information using a JWT token for authentication.
+
+The PlaceAdvisor API documentation serves as a comprehensive guide for interacting with the platform's capabilities, empowering users and developers to make the most of the application's features.
+
+
+\end{document}

@@ -8,6 +8,35 @@
 \usepackage{amsmath}
 \usepackage{fancyhdr}
 \usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[export]{adjustbox}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
 \usepackage{etoolbox}
 \usepackage[nottoc]{tocbibind}
 \usepackage{appendix}
@@ -21,6 +50,7 @@
 \usepackage{subcaption}
 \usepackage{commath}
 
+
 \usepackage{amsthm}
  
 \theoremstyle{definition}
@@ -31,6 +61,8 @@
 \usepackage[none]{hyphenat} % Avoids to go out of margin
 
 \usepackage{subfiles}
+\usepackage{imakeidx}
+\hypersetup{hidelinks}
 
 % --------------------------------------------- %
 
@@ -60,13 +92,14 @@
 \newpage
 \subfile{chapters/Introduction}
 \clearpage
-\subfile{chapters/Development}
+\subfile{chapters/User Requirements}
 \clearpage
-\subfile{chapters/Conclusions}
+\subfile{chapters/User stories}
 \clearpage
-\bibliographystyle{unsrt}
-\bibliography{ref}
-\nocite{*}  % to include references which were not cited
-%\addcontentsline{toc}{chapter}{references}
-
+\subfile{chapters/Function Points}
+\clearpage
+\subfile{chapters/Rest Interface}
+\clearpage
+\subfile{chapters/System Architecture}
+\clearpage
 \end{document}

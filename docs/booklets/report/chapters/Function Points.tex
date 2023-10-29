@@ -1,0 +1,171 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\section{Function Points}\label{sec:functionpoints}
+
+Function Points (FP) serve as a valuable metric for measuring the functionality and size of the PlaceAdvisor web application. They provide insights into the complexity and scope of the system, aiding in project estimation and resource allocation.
+
+\subsection{Complexity Tables for Function Points}
+
+In this section, we present complexity tables for Function Points in the context of PlaceAdvisor. These tables define the relationships between data element types (DET) and data element records (RET) for Internal Logical Files (ILF) and External Interface Files (EIF), as well as the complexity of data functions associated with External Inputs (EI), External Outputs (EO), and External Inquiries (EQ).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{RET/DET} & \textbf{1-19 DET} & \textbf{20-50 DET} & \textbf{51+ DET} \\
+\hline
+\textbf{0-1 RET} & Low 6/4 & Low 6/4 & Med. 9/7 \\
+\textbf{2-5 RET} & Low 6/4 & Med. 10/7 & High 15/10 \\
+\textbf{6+ RET} & Med. 10/7 & High 15/10 & High 15/10 \\
+\hline
+\end{tabular}
+\caption{Complexity Table for ILF/EIF}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{FTR/DET} & \textbf{1-4 DET} & \textbf{5-15 DET} & \textbf{16+ DET} \\
+\hline
+\textbf{0-1 FTR} & Low 1 & Low 2 & Med. 3 \\
+\textbf{2 FTR} & Low 3 & Med. 4 & High 5 \\
+\textbf{3+ FTR} & Med. 5 & High 6 & High 7 \\
+\hline
+\end{tabular}
+\caption{Complexity Table for EI}
+\end{table}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+\textbf{FTR/DET} & \textbf{1-4 DET} & \textbf{5-15 DET} & \textbf{16+ DET} \\
+\hline
+\textbf{0-1 FTR} & Low 2/1 & Low 3/2 & Med. 4/3 \\
+\textbf{2 FTR} & Low 4/3 & Med. 5/4 & High 6/5 \\
+\textbf{3+ FTR} & Med. 5 & High 6 & High 7 \\
+\hline
+\end{tabular}
+\caption{Complexity Table for EO/EQ}
+\end{table}
+
+\pagebreak
+
+
+\subsection{Internal Logical Files (ILF)}
+
+ILF represents data maintained within the application. Here are the ILFs identified for PlaceAdvisor:
+
+\begin{itemize}
+  \item \textbf{User}
+    \begin{itemize}
+      \item DET (Data Element Type): 7
+      \item RET (Record Element Type): 2 (reviews, feedbacks)
+    \end{itemize}
+
+  \item \textbf{Review}
+    \begin{itemize}
+      \item DET (Data Element Type): 8
+      \item RET (Record Element Type): 1 (reviews)
+    \end{itemize}
+
+  \item \textbf{City}
+    \begin{itemize}
+      \item DET (Data Element Type): 3
+      \item RET (Record Element Type): 0
+    \end{itemize}
+\end{itemize}
+
+\subsection{External Interface Files (EIF)}
+
+EIF represents data shared with external applications or services. Here are the EIFs identified for PlaceAdvisor:
+
+\begin{itemize}
+  \item \textbf{Place}
+    \begin{itemize}
+      \item DET (Data Element Type): 25
+      \item RET (Record Element Type): 2
+    \end{itemize}
+
+  \item \textbf{Facebook Profile}
+    \begin{itemize}
+      \item DET (Data Element Type): 4
+      \item RET (Record Element Type): 0
+    \end{itemize}
+\end{itemize}
+
+
+\subsection{Calculation of Function Points}
+
+We calculate function points based on the user stories and requirements previously outlined in this report. Each user story is mapped to one or more function point categories, and a complexity factor (Low, Average, or High) is assigned based on the complexity of the story.
+
+The function points are calculated as follows:
+
+\textbf{User Registration and Authentication:}
+\begin{itemize}
+  \item Login: 1 EQ * Low Complexity = 1 FP
+  \item User Registration with Facebook Login: 1 EI * Low Complexity = 2 FPs
+\end{itemize}
+
+\textbf{Homepage:}
+\begin{itemize}
+  \item Search for places: 1 EQ * Low Complexity = 1 FPs
+  \item Profile information: 1 EQ * Medium Complexity = 5 FPs
+  \item Kibana dashboard: 1 EQ * High Complexity = 6 FPs
+  \item Login with Google navigation link: 1 EQ4 * Low Complexity = 1 FPs
+\end{itemize}
+
+\textbf{List POI after search:}
+\begin{itemize}
+  \item Place (for each POI): 1 EQ * Low Complexity = 1 FPs
+\end{itemize}
+
+\textbf{POI Details Page:}
+\begin{itemize}
+  \item Google Profile (login with Google): 1 EQ * Low Complexity = 1 FPs
+  \item Review, User (review and photo): 1 EI * Medium Complexity = 4 FPs
+\end{itemize}
+
+\textbf{User Info Page:}
+\begin{itemize}
+  \item User, Reviews, Cities (Kibana dashboard): 1 EQ * High Complexity = 6 FPs
+  \item User (see reviews link): 1 EQ * Low Complexity = 1 FPs
+  \item User (see feedback link): 1 EQ * Low Complexity = 1 FPs
+  \item Reviews, User (delete review): 1 EO * Medium Complexity = 3 FPs
+  \item Reviews, User (delete account): 1 EO * Medium Complexity = 5 FPs
+\end{itemize}
+
+\textbf{Kibana Dashboard Insight Page:}
+\begin{itemize}
+  \item User (user profile navigation link): 1 EQ * Low Complexity = 1 FPs
+\end{itemize}
+
+\textbf{User Chat:}
+\begin{itemize}
+  \item User: 1 EQ * Low Complexity = 1 FP
+\end{itemize}
+
+\textbf{Support:}
+\begin{itemize}
+  \item Login: 1 EI * Low Complexity = 1 FPs 
+  \item User: 1 EQ * Low Complexity = 1 FPs
+\end{itemize}
+
+\subsection{Total Unadjusted Function Points (UFP)}
+
+The Unadjusted Function Points (UFP) is the sum of the calculated function points in each category:
+
+\begin{itemize}
+  \item EIs: 7 FPs
+  \item EOs: 8 FPs
+  \item EQs: 27 FPs
+  \item ILFs: 18 FPs
+  \item EIFs: 8 FPs
+\end{itemize}
+
+Total UFP: 68 FPs
+
+\end{document}
