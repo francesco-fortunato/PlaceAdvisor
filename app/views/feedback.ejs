@@ -34,28 +34,28 @@
 </script>
 <body class="text-center">
     <% if (!inviato){ %>
-        <h2>SEGNALACELO:</h2>
+        <h2>Send Us a feedback:</h2>
         
         <br><form action="https://localhost:8000/feedback" method="POST">
             <% if (photo==""){ %>
                 <input type="hidden" id="baseUrl" name="baseUrl" value=''>
             <% } else{ %>
-                Immagine aggiunta:<br>
+                Added image:<br>
                 <img src= <%= photo %> width="200" height="200"><br>
                 <input type="hidden" id="baseUrl" name="baseUrl" value=<%=photo %>>
             
                 
             <% } %>
             
-            <textarea name="feed" style="resize:none" cols="60" rows="10" placeholder="Inviaci il tuo feed"></textarea><br>
-            <input class="mb-3" type="submit" value="Invia" size="30" onclick="sendMessage()">
+            <textarea name="feed" style="resize:none" cols="60" rows="10" placeholder="Write here!"></textarea><br>
+            <input class="mb-3" type="submit" value="Send" size="30" onclick="sendMessage()">
         </form>
         
 
-        <br><a href= "https://localhost:8000/home"><button class="mb-3" value="submit">Torna alla home</button></a><br>
+        <br><a href= "https://localhost:8000/home"><button class="mb-3" value="submit">Back to home</button></a><br>
     <% } else { %>
-        Fantastico!! Il feedback è stato ricevuto correttamente. Grazie per averci segnalato questa brutta cosa, cercheremo di risolverla al più presto!
-        <a href="https://localhost:8000/home"><button class="mb-3">Torna alla home</button></a><br>
+        Great your feedback was successfully sent! Go to you profile page to further update
+        <a href="https://localhost:8000/home"><button class="mb-3">Back to home</button></a><br>
     <% } %>
 </body>
 </html>
